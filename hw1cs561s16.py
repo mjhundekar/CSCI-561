@@ -14,6 +14,11 @@ max_o_eval = 0
 next_state = [[]]
 raid_flag = False
 
+class Board:
+    x_eval = 0
+    o_eval = 0
+    def __init__(self,curr_state,player,opponent):
+
 
 def process_input(fn):
     file_handle = open(fn, "r")
