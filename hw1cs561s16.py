@@ -7,17 +7,171 @@ sym_choice = ''
 opp_choice = ''
 alg_choice = ''
 cut_off = 0
-max_i = 0
-max_j = 0
-max_x_eval = 0
-max_o_eval = 0
-next_state = [[]]
-raid_flag = False
+
 
 class Board:
-    x_eval = 0
-    o_eval = 0
-    def __init__(self,curr_state,player,opponent):
+    def __init__(self, curr_state, player, opponent):
+        self.brd_state = copy.deepcopy(curr_state)
+        self.brd_p1 = player
+        self.brd_p2 = opponent
+        self.brd_x_eval, self.brd_o_eval = eval_function(self.brd_state)
+        self.brd_max_i = 0
+        self.brd_max_j = 0
+        self.brd_max_x_eval = 0
+        self.brd_max_o_eval = 0
+        self.brd_raid_flag = False
+
+    def brd_sneak(self, i, j):
+        self.brd_state[i][j] = sym_choice
+        [curr_x_eval, curr_o_eval] = eval_function(self.brd_state)
+        p1 = self.brd_p1
+        # p2 = self.brd_p2
+
+        # Retain block for debugging
+        print 'Sneak'
+        print 'i, j:', i, j
+        for t in range(5):
+            print ("".join(map(str, self.brd_state[t])))
+        print '\nMax_X, X:', self.brd_max_x_eval, curr_x_eval
+        print '\nMax_O, O:', self.brd_max_o_eval, curr_o_eval
+        print self.brd_raid_flag
+        print 'max_i, max_j:', self.brd_max_i, self.brd_max_j
+
+        if p1 == 'X':
+            if curr_x_eval > self.brd_max_x_eval:  # if eval function is higher remember change
+                self.brd_max_i = i
+                self.brd_max_j = j
+                self.brd_max_x_eval = curr_x_eval
+                self.brd_raid_flag = False
+        else:
+            if curr_o_eval > self.brd_max_o_eval:  # if eval function is higher remember change
+                self.brd_max_i = i
+                self.brd_max_j = j
+                self.brd_max_o_eval = curr_o_eval
+                self.brd_raid_flag = False
+        self.brd_state[i][j] = '*'  # revert the change made at i,j
+
+        # Retain block for debugging
+        print '\nSneak after revert'
+        for t in range(5):
+            print ("".join(map(str, self.brd_state[t])))
+
+    def brd_raid(self, i, j):
+        back_flip = False
+        front_flip = False
+        right_flip = False
+        left_flip = False
+
+        p1 = self.brd_p1
+        p2 = self.brd_p2
+
+        self.brd_state[i][j] = p1
+
+        if i - 1 > 0:  # check back move
+            if self.brd_state[i - 1][j] == p2:
+                self.brd_state[i - 1][j] = p1
+                back_flip = True
+
+        if i + 1 < 5:  # check front move
+            if self.brd_state[i + 1][j] == p2:
+                self.brd_state[i + 1][j] = p1
+                front_flip = True
+
+        if j + 1 < 5:  # check right move
+            if self.brd_state[i][j + 1] == p2:
+                self.brd_state[i][j + 1] = p1
+                right_flip = True
+
+        if j - 1 > 0:  # check left move
+            if self.brd_state[i][j - 1] == p2:
+                self.brd_state[i][j - 1] = p1
+                left_flip = True
+
+        [curr_x_eval, curr_o_eval] = eval_function(self.brd_state)
+
+        # Retain block for debugging
+        print 'Raid'
+        print 'i, j:', i, j
+        for t in range(5):
+            print ("".join(map(str, self.brd_state[t])))
+        print 'Max_X, X:', self.brd_max_x_eval, curr_x_eval
+        print 'Max_O, O:', self.brd_max_o_eval, curr_o_eval
+        print self.brd_raid_flag
+        print 'self.brd_max_i, self.brd_max_j:', self.brd_max_i, self.brd_max_j
+
+        if p1 == 'X':
+            if curr_x_eval > self.brd_max_x_eval:  # if eval function is higher remember change
+                self.brd_max_i = i
+                self.brd_max_j = j
+                self.brd_max_x_eval = curr_x_eval
+                self.brd_raid_flag = True
+        else:
+            if curr_o_eval > self.brd_max_o_eval:  # if eval function is higher remember change
+                self.brd_max_i = i
+                self.brd_max_j = j
+                self.brd_max_o_eval = curr_o_eval
+                self.brd_raid_flag = True
+
+        # revert changes
+        self.brd_state[i][j] = '*'
+        if front_flip:
+            self.brd_state[i + 1][j] = p2
+        if right_flip:
+            self.brd_state[i][j + 1] = p2
+        if back_flip:
+            self.brd_state[i - 1][j] = p2
+        if left_flip:
+            self.brd_state[i][j - 1] = p2
+
+        # Retain block for debugging
+        print '\nRaid after revert'
+        print 'i, j:', i, j
+        for t in range(5):
+            print ("".join(map(str, self.brd_state[t])))
+
+    def brd_make_move(self):
+        next_brd_state = copy.deepcopy(self.brd_state)
+        p1 = self.brd_p1
+        p2 = self.brd_p2
+        # change i,j
+        i = self.brd_max_i
+        j = self.brd_max_j
+        next_brd_state[i][j] = p1
+
+        # print 'Make Move:',i, j, self.brd_raid_flag
+
+        if self.brd_raid_flag:
+            self.brd_raid_flag = False
+            if i - 1 > 0:  # change back move
+                if next_brd_state[i - 1][j] == p2:
+                    next_brd_state[i - 1][j] = p1
+
+            if i + 1 < 5:  # change front move
+                if next_brd_state[i + 1][j] == p2:
+                    next_brd_state[i + 1][j] = p1
+
+            if j + 1 < 5:  # check right move
+                if next_brd_state[i][j + 1] == p2:
+                    next_brd_state[i][j + 1] = p1
+
+            if j - 1 > 0:  # check left move
+                if next_brd_state[i][j - 1] == p2:
+                    next_brd_state[i][j - 1] = p1
+        # write_next_state(next_brd_state)
+        return next_brd_state
+
+    def brd_greedy_best_first_search(self):
+        [self.brd_max_x_eval, self.brd_max_o_eval] = eval_function(self.brd_state)
+        for i in range(5):
+            for j in range(5):
+                if self.brd_state[i][j] == '*':
+                    if check_sneak(self.brd_state, i, j):
+                        self.brd_sneak(i, j)
+                    else:  # sneak not possible then its raid
+                        self.brd_raid(i, j)
+        next_brd_state = self.brd_make_move()
+        next_brd = Board(next_brd_state, self.brd_p1, self.brd_p2)
+        return next_brd
 
 
 def process_input(fn):
@@ -30,10 +184,7 @@ def process_input(fn):
     global opp_choice
     global alg_choice
     global cut_off
-    # i = "a"
-    # j = "a"
-    # board_value ={}
-    # curr_board = {}
+
     for line in file_handle:
         if line_counter == 0:
             alg_choice = line.strip('\n')
@@ -60,12 +211,6 @@ def process_input(fn):
             line_counter += 1
 
 
-            # print board_value
-            # print init_board
-            # l= curr_board['a']
-            # print l[2]
-
-
 def eval_function(curr_state):
     init_x_eval = 0
     init_o_eval = 0
@@ -74,25 +219,19 @@ def eval_function(curr_state):
         # print key
         for (bvi, cbi) in zip(bvl, csl):
             init_b_eval += bvi
-            if (cbi == 'X'):
+            if cbi == 'X':
                 init_x_eval += bvi
-            elif (cbi == 'O'):
+            elif cbi == 'O':
                 init_o_eval += bvi
 
     curr_x_eval = init_x_eval - init_o_eval
     curr_o_eval = init_o_eval - init_x_eval
-    #useless
-    # print init_b_eval
-    # print init_x_eval
-    # print init_o_eval
-    # print curr_x_eval
-    # print curr_o_eval
     evaluated = [curr_x_eval, curr_o_eval]
     return evaluated
 
 
 def check_sneak(curr_state, i, j):
-    #check if any adjacent square contains sym_choice
+    # check if any adjacent square contains sym_choice
     if i - 1 >= 0:  # check back move
         if curr_state[i - 1][j] == sym_choice:
             return False
@@ -108,134 +247,7 @@ def check_sneak(curr_state, i, j):
     return True
 
 
-def sneak(curr_state, i, j):
-    global max_j
-    global max_i
-    global max_x_eval
-    global max_o_eval
-    global raid_flag
-    curr_state[i][j] = sym_choice
-    [curr_x_eval, curr_o_eval] = eval_function(curr_state)
-
-    #Retain block for debugging
-    # print 'Sneak'
-    # print 'i, j:',i,j
-    # for t in range(5):
-    #     print ("".join(map(str, curr_state[t])))
-    # print '\nMax_X, X:', max_x_eval, curr_x_eval
-    # print '\nMax_O, O:', max_o_eval, curr_o_eval
-    # print raid_flag
-    # print 'max_i, max_j:', max_i,max_j
-
-    if sym_choice == 'X':
-        if curr_x_eval > max_x_eval:  # if eval function is higher remember change
-            max_i = i
-            max_j = j
-            max_x_eval = curr_x_eval
-            raid_flag = False
-    else:
-        if curr_o_eval > max_o_eval:  # if eval function is higher remember change
-            max_i = i
-            max_j = j
-            max_o_eval = curr_o_eval
-            raid_flag = False
-    curr_state[i][j] = '*'  # revert the change made at i,j
-
-    #Retain block for debugging
-    #print '\nSneak after revert'
-    #for t in range(5):
-    #     print ("".join(map(str, curr_state[t])))
-
-
-    # Useless
-    # sneak_return = [max_i, max_j]  #since golobal noneed to return i think
-    # return sneak_return
-    # else:
-    #     curr_state[i][j] = '*'  # revert the change made at i,j
-    #     return [i, j, max_x_eval]
-
-
-def raid(curr_state, i, j):
-    global max_j
-    global max_i
-    global max_x_eval
-    global max_o_eval
-    global raid_flag
-    back_flip = False
-    front_flip = False
-    right_flip = False
-    left_flip = False
-
-    curr_state[i][j] = sym_choice
-
-    if i - 1 > 0:  # check back move
-        if curr_state[i - 1][j] == opp_choice:
-            curr_state[i - 1][j] = sym_choice
-            back_flip = True
-
-    if i + 1 < 5:  # check front move
-        if curr_state[i + 1][j] == opp_choice:
-            curr_state[i + 1][j] = sym_choice
-            front_flip = True
-
-    if j + 1 < 5:  # check right move
-        if curr_state[i][j + 1] == opp_choice:
-            curr_state[i][j + 1] = sym_choice
-            right_flip = True
-
-    if j - 1 > 0:  # check left move
-        if curr_state[i][j - 1] == opp_choice:
-            curr_state[i][j - 1] = sym_choice
-            left_flip = True
-
-    [curr_x_eval, curr_o_eval] = eval_function(curr_state)
-
-    # Retain block for debugging
-    # print 'Raid'
-    # print 'i, j:',i,j
-    # for t in range(5):
-    #     print ("".join(map(str, curr_state[t])))
-    # print 'Max_X, X:', max_x_eval, curr_x_eval
-    # print 'Max_O, O:', max_o_eval, curr_o_eval
-    # print raid_flag
-    # print 'max_i, max_j:', max_i,max_j
-
-
-    if sym_choice == 'X':
-        if curr_x_eval > max_x_eval:  # if eval function is higher remember change
-            max_i = i
-            max_j = j
-            max_x_eval = curr_x_eval
-            raid_flag = True
-    else:
-        if curr_o_eval > max_o_eval:  # if eval function is higher remember change
-            max_i = i
-            max_j = j
-            max_o_eval = curr_o_eval
-            raid_flag = True
-
-    # revert changes although not sure if this is necessary, need to check if changing curr_sate here reflects bak in parent:
-    #yes parent change
-    #can do lazy reverts????
-    curr_state[i][j] = '*'
-    if front_flip:
-        curr_state[i + 1][j] = opp_choice
-    if right_flip:
-        curr_state[i][j + 1] = opp_choice
-    if back_flip:
-        curr_state[i - 1][j] = opp_choice
-    if left_flip:
-        curr_state[i][j - 1] = opp_choice
-
-   # Retain block for debugging
-   #  print '\nRaid after revert'
-   #  print 'i, j:',i,j
-   #  for t in range(5):
-   #      print ("".join(map(str, curr_state[t])))
-        # raid_return = [max_i, max_j]
-        # return raid_return
-
-
+# oop version not needed
 def write_next_state(a_next_state):
     f = open("output.txt", "w")
     s = ""
@@ -247,97 +259,10 @@ def write_next_state(a_next_state):
     f.close()
 
 
-def make_move(curr_state, i, j):
-    global next_state
-    global raid_flag
-    next_state = copy.deepcopy(curr_state)
-
-    #change i,j
-    next_state[i][j] = sym_choice
-
-    # print 'Make Move:',i, j, raid_flag
-
-    if raid_flag:
-        raid_flag = False
-        if i - 1 > 0:  # change back move
-            if next_state[i - 1][j] == opp_choice:
-                next_state[i - 1][j] = sym_choice
-
-        if i + 1 < 5:  # change front move
-            if next_state[i + 1][j] == opp_choice:
-                next_state[i + 1][j] = sym_choice
-
-        if j + 1 < 5:  # check right move
-            if next_state[i][j + 1] == opp_choice:
-                next_state[i][j + 1] = sym_choice
-
-        if j - 1 > 0:  # check left move
-            if curr_state[i][j - 1] == opp_choice:
-                next_state[i][j - 1] = sym_choice
-    write_next_state(next_state)
-
-
-def greedy_best_first_search(curr_state):
-    global max_i
-    global max_j
-    global max_x_eval
-    global max_o_eval
-    [max_x_eval, max_o_eval] = eval_function(curr_state)
-    #no need for global max variables can maintain them here with function returing their values and paasing the curr max values
-    #might become more messy
-    #need to move the max eval in this funtion then, needs further thought
-    for i in range(5):
-        for j in range(5):
-            if curr_state[i][j] == '*':
-                if check_sneak(curr_state, i, j):
-                    # [max_i, max_j, max_x_eval] = sneak(curr_state, i, j)
-                    sneak(curr_state, i, j)
-                    #raid_flag = False
-                else:  # sneak not possible then its raid
-                    # [max_i, max_j, max_x_eval] = raid(curr_state, i, j)
-                    raid(curr_state, i, j)
-                    # raid_flag = True
-    make_move(curr_state,max_i,max_j)
-
-
-
-    # make move
-    # curr_state[max_i][max_j] = sym_choice
-    # if raid_flag:
-    #     raid_flag = False
-    #     if (i - 1 > 0):  # change back move
-    #         if curr_state[i - 1][j] == opp_choice:
-    #             curr_state[i - 1][j] = sym_choice
-    #
-    #     if i + 1 < 5:  # change front move
-    #         if curr_state[i + 1][j] == opp_choice:
-    #             curr_state[i + 1][j] = sym_choice
-    #
-    #     if j + 1 < 5:  # check right move
-    #     if curr_state[i][j + 1] == opp_choice:
-    #         curr_state[i][j + 1] = sym_choice
-    #         right_flip = True
-    #     if j - 1 > 0:  # check left move
-    #     if curr_state[i][j - 1] == opp_choice:
-    #         curr_state[i][j - 1] = sym_choice
-    #         left_flip = True
-
-    # f = open("output.txt", "w")
-    # s = ""
-    # for i in range(5):
-    #     s += "".join(map(str, curr_state[i]))
-    #     if i < 4:
-    #         s += "\n"
-    # f.write(s)
-    # f.close()
-
-
 def main():
     file_name = sys.argv[2]
     process_input(file_name)
     # process_input("input.txt")
-
-
     # print "Algo choice", alg_choice
     # print "Symbol Choice", sym_choice
     # print "Cutoff", cut_off
@@ -348,8 +273,11 @@ def main():
     # for key in init_board:
     #     print key
     # if init_board[0][2] == sym_choice: print init_board[0][2]
-    # print "symchoice in main is", sym_choice
-    greedy_best_first_search(init_board)
+    # print "sym_choice in main is", sym_choice
+    input_board = Board(init_board, sym_choice, opp_choice)
+    next_board = input_board.brd_greedy_best_first_search()
+    write_next_state(next_board.brd_state)
+
     # eval_function(init_board)
 
 
