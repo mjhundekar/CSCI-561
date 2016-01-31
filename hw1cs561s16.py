@@ -21,6 +21,13 @@ class Board:
         self.brd_max_o_eval = 0
         self.brd_raid_flag = False
 
+    def end_game(self):
+        for i in range(5):
+            for j in range(5):
+                if self.brd_state[i][j] == '*':
+                    return False
+        return True
+
     def brd_sneak(self, i, j):
         self.brd_state[i][j] = sym_choice
         [curr_x_eval, curr_o_eval] = eval_function(self.brd_state)
