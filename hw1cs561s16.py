@@ -14,11 +14,13 @@ class Board:
         self.brd_state = copy.deepcopy(curr_state)
         self.brd_p1 = player
         self.brd_p2 = opponent
-        self.brd_x_eval, self.brd_o_eval = eval_function(self.brd_state)
         self.brd_max_i = 0
         self.brd_max_j = 0
-        self.brd_max_x_eval = 0
-        self.brd_max_o_eval = 0
+        self.brd_max_p1_eval = 0
+        self.brd_max_p2_eval = 0
+        self.brd_init_p1_val, self.brd_init_p2_val = init_eval_function(self.brd_state)
+        self.brd_curr_p1_eval = self.brd_init_p1_val
+        self.brd_curr_p2_eval = self.brd_init_p2_val
         self.brd_raid_flag = False
 
     def end_game(self):
@@ -28,40 +30,72 @@ class Board:
                     return False
         return True
 
-    def brd_sneak(self, i, j):
-        self.brd_state[i][j] = sym_choice
-        [curr_x_eval, curr_o_eval] = eval_function(self.brd_state)
-        p1 = self.brd_p1
+    def brd_eval_fun(self, move, i, j, front, right, back, left):
+        # p1 = self.brd_p1
         # p2 = self.brd_p2
+        if move == 's':
+                self.brd_curr_p1_eval += board_value[i][j]
+                self.brd_curr_p2_eval -= board_value[i][j]
+        elif move == 'r':
+            # empty place
+            self.brd_curr_p1_eval += board_value[i][j]
+            self.brd_curr_p2_eval -= board_value[i][j]
+
+            # check which neighbour contain O and then add those values in X and reduce twice that value from O
+            if front:  # check front move
+                self.brd_curr_p1_eval += 2*board_value[i + 1][j]
+                self.brd_curr_p2_eval -= 2*board_value[i + 1][j]
+
+            if right:  # check right move
+                self.brd_curr_p1_eval += 2*board_value[i][j + 1]
+                self.brd_curr_p2_eval -= 2*board_value[i][j + 1]
+
+            if back:  # check back move
+                self.brd_curr_p1_eval += 2*board_value[i - 1][j]
+                self.brd_curr_p2_eval -= 2*board_value[i - 1][j]
+
+            if left:  # check left move
+                self.brd_curr_p1_eval += 2*board_value[i][j - 1]
+                self.brd_curr_p2_eval -= 2*board_value[i][j - 1]
+
+    def brd_sneak(self, i, j):
+        temp_curr_x_eval = self.brd_curr_p1_eval
+        temp_curr_o_eval = self.brd_curr_p2_eval
+
+        self.brd_state[i][j] = self.brd_p1
+        self.brd_eval_fun('s', i, j, False, False, False, False)
+        # p1 = self.brd_p1
+        # p2 = self.brd_p2
+
+        if self.brd_curr_p1_eval > self.brd_max_p1_eval:  # if eval function is higher remember change
+            self.brd_max_i = i
+            self.brd_max_j = j
+            self.brd_max_p1_eval = self.brd_curr_p1_eval
+            self.brd_raid_flag = False  # sneak is a better move
 
         # Retain block for debugging
         print 'Sneak'
         print 'i, j:', i, j
         for t in range(5):
             print ("".join(map(str, self.brd_state[t])))
-        print '\nMax_X, X:', self.brd_max_x_eval, curr_x_eval
-        print '\nMax_O, O:', self.brd_max_o_eval, curr_o_eval
+        print '\nMax_P1,Curr_P1:', self.brd_max_p1_eval, self.brd_curr_p1_eval
+        print '\nMax_P2, Curr_P2:', self.brd_max_p2_eval, self.brd_curr_p2_eval
         print self.brd_raid_flag
         print 'max_i, max_j:', self.brd_max_i, self.brd_max_j
 
-        if p1 == 'X':
-            if curr_x_eval > self.brd_max_x_eval:  # if eval function is higher remember change
-                self.brd_max_i = i
-                self.brd_max_j = j
-                self.brd_max_x_eval = curr_x_eval
-                self.brd_raid_flag = False
-        else:
-            if curr_o_eval > self.brd_max_o_eval:  # if eval function is higher remember change
-                self.brd_max_i = i
-                self.brd_max_j = j
-                self.brd_max_o_eval = curr_o_eval
-                self.brd_raid_flag = False
         self.brd_state[i][j] = '*'  # revert the change made at i,j
+        # revert the curr p1 and p2 eval values to original before move ie init i think
+        self.brd_curr_p1_eval = temp_curr_x_eval
+        self.brd_curr_p2_eval = temp_curr_o_eval
 
         # Retain block for debugging
         print '\nSneak after revert'
         for t in range(5):
             print ("".join(map(str, self.brd_state[t])))
+        print '\nMax_P1,Curr_P1:', self.brd_max_p1_eval, self.brd_curr_p1_eval
+        print '\nMax_P2, Curr_P2:', self.brd_max_p2_eval, self.brd_curr_p2_eval
+        print self.brd_raid_flag
+        print 'max_i, max_j:', self.brd_max_i, self.brd_max_j
 
     def brd_raid(self, i, j):
         back_flip = False
@@ -94,32 +128,29 @@ class Board:
                 self.brd_state[i][j - 1] = p1
                 left_flip = True
 
-        [curr_x_eval, curr_o_eval] = eval_function(self.brd_state)
+        temp_curr_x_eval = self.brd_curr_p1_eval
+        temp_curr_o_eval = self.brd_curr_p2_eval
+        self.brd_eval_fun('r', i, j, front_flip, right_flip, back_flip, left_flip)
+
+        if self.brd_curr_p1_eval > self.brd_max_p1_eval:  # if eval function is higher remember change
+            self.brd_max_i = i
+            self.brd_max_j = j
+            self.brd_max_p1_eval = self.brd_curr_p1_eval
+            self.brd_raid_flag = True  # raid is a better move
 
         # Retain block for debugging
         print 'Raid'
         print 'i, j:', i, j
         for t in range(5):
             print ("".join(map(str, self.brd_state[t])))
-        print 'Max_X, X:', self.brd_max_x_eval, curr_x_eval
-        print 'Max_O, O:', self.brd_max_o_eval, curr_o_eval
+        print 'Max_P1,CURR_P1:', self.brd_max_p1_eval, self.brd_curr_p1_eval
+        print 'Max_P2,CURR_P2:', self.brd_max_p2_eval, self.brd_curr_p2_eval
         print self.brd_raid_flag
         print 'self.brd_max_i, self.brd_max_j:', self.brd_max_i, self.brd_max_j
 
-        if p1 == 'X':
-            if curr_x_eval > self.brd_max_x_eval:  # if eval function is higher remember change
-                self.brd_max_i = i
-                self.brd_max_j = j
-                self.brd_max_x_eval = curr_x_eval
-                self.brd_raid_flag = True
-        else:
-            if curr_o_eval > self.brd_max_o_eval:  # if eval function is higher remember change
-                self.brd_max_i = i
-                self.brd_max_j = j
-                self.brd_max_o_eval = curr_o_eval
-                self.brd_raid_flag = True
-
         # revert changes
+        self.brd_curr_p1_eval = temp_curr_x_eval
+        self.brd_curr_p2_eval = temp_curr_o_eval
         self.brd_state[i][j] = '*'
         if front_flip:
             self.brd_state[i + 1][j] = p2
@@ -135,6 +166,10 @@ class Board:
         print 'i, j:', i, j
         for t in range(5):
             print ("".join(map(str, self.brd_state[t])))
+        print 'Max_P1,CURR_P1:', self.brd_max_p1_eval, self.brd_curr_p1_eval
+        print 'Max_P2,CURR_P2:', self.brd_max_p2_eval, self.brd_curr_p2_eval
+        print self.brd_raid_flag
+        print 'self.brd_max_i, self.brd_max_j:', self.brd_max_i, self.brd_max_j
 
     def brd_make_move(self):
         next_brd_state = copy.deepcopy(self.brd_state)
@@ -165,10 +200,11 @@ class Board:
                 if next_brd_state[i][j - 1] == p2:
                     next_brd_state[i][j - 1] = p1
         # write_next_state(next_brd_state)
+        # Retain block for debugging
         return next_brd_state
 
     def brd_greedy_best_first_search(self):
-        [self.brd_max_x_eval, self.brd_max_o_eval] = eval_function(self.brd_state)
+        [self.brd_max_p1_eval, self.brd_max_p2_eval] = init_eval_function(self.brd_state)
         for i in range(5):
             for j in range(5):
                 if self.brd_state[i][j] == '*':
@@ -177,7 +213,13 @@ class Board:
                     else:  # sneak not possible then its raid
                         self.brd_raid(i, j)
         next_brd_state = self.brd_make_move()
+        # here the init eval function will store the valutation of best state from previous
         next_brd = Board(next_brd_state, self.brd_p1, self.brd_p2)
+        print '\n\nFinal Move'
+        print self.brd_raid_flag
+        for t in range(5):
+            print ("".join(map(str, next_brd.brd_state[t])))
+        print 'P1 INIT,  P2 INIT', next_brd.brd_init_p1_val, next_brd.brd_init_p2_val
         return next_brd
 
 
@@ -218,7 +260,7 @@ def process_input(fn):
             line_counter += 1
 
 
-def eval_function(curr_state):
+def init_eval_function(curr_state):
     init_x_eval = 0
     init_o_eval = 0
     init_b_eval = 0
