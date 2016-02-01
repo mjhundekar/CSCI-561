@@ -14,14 +14,40 @@ class Board:
         self.brd_state = copy.deepcopy(curr_state)
         self.brd_p1 = player
         self.brd_p2 = opponent
-        self.brd_max_i = 0
-        self.brd_max_j = 0
-        self.brd_max_p1_eval = 0
-        self.brd_max_p2_eval = 0
-        self.brd_init_p1_val, self.brd_init_p2_val = init_eval_function(self.brd_state)
-        self.brd_curr_p1_eval = self.brd_init_p1_val
-        self.brd_curr_p2_eval = self.brd_init_p2_val
+
+        # # These below 2 are useless as well now
+        # self.brd_max_i = 0
+        # self.brd_max_j = 0
+
+        # # max has become redundant too
+        # self.brd_max_p1_eval = 0
+        # self.brd_max_p2_eval = 0
+
+        # seems the below are redundant
+        # self.brd_init_p1_val, self.brd_init_p2_val = init_eval_function(self.brd_state)
+
+        self.brd_curr_p1_eval, self.brd_curr_p2_eval = self.brd_eval_function()
         self.brd_raid_flag = False
+
+    def brd_eval_function(self):
+        init_p1_eval = 0
+        init_p2_eval = 0
+        init_b_eval = 0
+
+        for i in range(5):
+            # print key
+            for j in range(5):
+                init_b_eval += board_value[i][j]
+                if self.brd_state[i][j] == self.brd_p1:
+                    init_p1_eval += board_value[i][j]
+                elif self.brd_state[i][j] == self.brd_p2:
+                    init_p2_eval += board_value[i][j]
+
+        curr_p1_eval = init_p1_eval - init_p2_eval
+        curr_p2_eval = init_p2_eval - init_p1_eval
+        evaluated = [curr_p1_eval, curr_p2_eval]
+
+        return evaluated
 
     def end_game(self):
         for i in range(5):
@@ -31,8 +57,6 @@ class Board:
         return True
 
     def brd_eval_fun(self, move, i, j, front, right, back, left):
-        # p1 = self.brd_p1
-        # p2 = self.brd_p2
         if move == 's':
                 self.brd_curr_p1_eval += board_value[i][j]
                 self.brd_curr_p2_eval -= board_value[i][j]
@@ -59,168 +83,80 @@ class Board:
                 self.brd_curr_p2_eval -= 2*board_value[i][j - 1]
 
     def brd_sneak(self, i, j):
-        temp_curr_x_eval = self.brd_curr_p1_eval
-        temp_curr_o_eval = self.brd_curr_p2_eval
-
-        self.brd_state[i][j] = self.brd_p1
-        self.brd_eval_fun('s', i, j, False, False, False, False)
-        # p1 = self.brd_p1
-        # p2 = self.brd_p2
-
-        if self.brd_curr_p1_eval > self.brd_max_p1_eval:  # if eval function is higher remember change
-            self.brd_max_i = i
-            self.brd_max_j = j
-            self.brd_max_p1_eval = self.brd_curr_p1_eval
-            self.brd_raid_flag = False  # sneak is a better move
+        next_board_state = copy.deepcopy(self.brd_state)
+        next_board_state[i][j] = self.brd_p1
+        next_sneak_node = Board(next_board_state, self.brd_p1, self.brd_p2)
 
         # Retain block for debugging
-        print 'Sneak'
+        print '\n\nSneak'
         print 'i, j:', i, j
         for t in range(5):
-            print ("".join(map(str, self.brd_state[t])))
-        print '\nMax_P1,Curr_P1:', self.brd_max_p1_eval, self.brd_curr_p1_eval
-        print '\nMax_P2, Curr_P2:', self.brd_max_p2_eval, self.brd_curr_p2_eval
-        print self.brd_raid_flag
-        print 'max_i, max_j:', self.brd_max_i, self.brd_max_j
+            print ("".join(map(str, next_sneak_node.brd_state[t])))
+        print '\nNew_P1,Curr_P1:', next_sneak_node.brd_curr_p1_eval, self.brd_curr_p1_eval
+        print '\nNew_P2, Curr_P2:', next_sneak_node.brd_curr_p2_eval, self.brd_curr_p2_eval
 
-        self.brd_state[i][j] = '*'  # revert the change made at i,j
-        # revert the curr p1 and p2 eval values to original before move ie init i think
-        self.brd_curr_p1_eval = temp_curr_x_eval
-        self.brd_curr_p2_eval = temp_curr_o_eval
-
-        # Retain block for debugging
-        print '\nSneak after revert'
-        for t in range(5):
-            print ("".join(map(str, self.brd_state[t])))
-        print '\nMax_P1,Curr_P1:', self.brd_max_p1_eval, self.brd_curr_p1_eval
-        print '\nMax_P2, Curr_P2:', self.brd_max_p2_eval, self.brd_curr_p2_eval
-        print self.brd_raid_flag
-        print 'max_i, max_j:', self.brd_max_i, self.brd_max_j
+        return next_sneak_node
 
     def brd_raid(self, i, j):
-        back_flip = False
-        front_flip = False
-        right_flip = False
-        left_flip = False
-
         p1 = self.brd_p1
         p2 = self.brd_p2
 
-        self.brd_state[i][j] = p1
+        next_board_state = copy.deepcopy(self.brd_state)
+        next_board_state[i][j] = self.brd_p1
 
         if i - 1 > 0:  # check back move
-            if self.brd_state[i - 1][j] == p2:
-                self.brd_state[i - 1][j] = p1
-                back_flip = True
+            if next_board_state[i - 1][j] == p2:
+                next_board_state[i - 1][j] = p1
 
         if i + 1 < 5:  # check front move
-            if self.brd_state[i + 1][j] == p2:
-                self.brd_state[i + 1][j] = p1
-                front_flip = True
+            if next_board_state[i + 1][j] == p2:
+                next_board_state[i + 1][j] = p1
 
         if j + 1 < 5:  # check right move
-            if self.brd_state[i][j + 1] == p2:
-                self.brd_state[i][j + 1] = p1
-                right_flip = True
+            if next_board_state[i][j + 1] == p2:
+                next_board_state[i][j + 1] = p1
 
         if j - 1 > 0:  # check left move
-            if self.brd_state[i][j - 1] == p2:
-                self.brd_state[i][j - 1] = p1
-                left_flip = True
+            if next_board_state[i][j - 1] == p2:
+                next_board_state[i][j - 1] = p1
 
-        temp_curr_x_eval = self.brd_curr_p1_eval
-        temp_curr_o_eval = self.brd_curr_p2_eval
-        self.brd_eval_fun('r', i, j, front_flip, right_flip, back_flip, left_flip)
-
-        if self.brd_curr_p1_eval > self.brd_max_p1_eval:  # if eval function is higher remember change
-            self.brd_max_i = i
-            self.brd_max_j = j
-            self.brd_max_p1_eval = self.brd_curr_p1_eval
-            self.brd_raid_flag = True  # raid is a better move
+        next_raid_node = Board(next_board_state, self.brd_p1, self.brd_p2)
 
         # Retain block for debugging
         print 'Raid'
         print 'i, j:', i, j
         for t in range(5):
-            print ("".join(map(str, self.brd_state[t])))
-        print 'Max_P1,CURR_P1:', self.brd_max_p1_eval, self.brd_curr_p1_eval
-        print 'Max_P2,CURR_P2:', self.brd_max_p2_eval, self.brd_curr_p2_eval
-        print self.brd_raid_flag
-        print 'self.brd_max_i, self.brd_max_j:', self.brd_max_i, self.brd_max_j
+            print ("".join(map(str, next_raid_node.brd_state[t])))
+        print '\nNew_P1,Curr_P1:', next_raid_node.brd_curr_p1_eval, self.brd_curr_p1_eval
+        print '\nNew_P2, Curr_P2:', next_raid_node.brd_curr_p2_eval, self.brd_curr_p2_eval
 
-        # revert changes
-        self.brd_curr_p1_eval = temp_curr_x_eval
-        self.brd_curr_p2_eval = temp_curr_o_eval
-        self.brd_state[i][j] = '*'
-        if front_flip:
-            self.brd_state[i + 1][j] = p2
-        if right_flip:
-            self.brd_state[i][j + 1] = p2
-        if back_flip:
-            self.brd_state[i - 1][j] = p2
-        if left_flip:
-            self.brd_state[i][j - 1] = p2
-
-        # Retain block for debugging
-        print '\nRaid after revert'
-        print 'i, j:', i, j
-        for t in range(5):
-            print ("".join(map(str, self.brd_state[t])))
-        print 'Max_P1,CURR_P1:', self.brd_max_p1_eval, self.brd_curr_p1_eval
-        print 'Max_P2,CURR_P2:', self.brd_max_p2_eval, self.brd_curr_p2_eval
-        print self.brd_raid_flag
-        print 'self.brd_max_i, self.brd_max_j:', self.brd_max_i, self.brd_max_j
-
-    def brd_make_move(self):
-        next_brd_state = copy.deepcopy(self.brd_state)
-        p1 = self.brd_p1
-        p2 = self.brd_p2
-        # change i,j
-        i = self.brd_max_i
-        j = self.brd_max_j
-        next_brd_state[i][j] = p1
-
-        # print 'Make Move:',i, j, self.brd_raid_flag
-
-        if self.brd_raid_flag:
-            self.brd_raid_flag = False
-            if i - 1 > 0:  # change back move
-                if next_brd_state[i - 1][j] == p2:
-                    next_brd_state[i - 1][j] = p1
-
-            if i + 1 < 5:  # change front move
-                if next_brd_state[i + 1][j] == p2:
-                    next_brd_state[i + 1][j] = p1
-
-            if j + 1 < 5:  # check right move
-                if next_brd_state[i][j + 1] == p2:
-                    next_brd_state[i][j + 1] = p1
-
-            if j - 1 > 0:  # check left move
-                if next_brd_state[i][j - 1] == p2:
-                    next_brd_state[i][j - 1] = p1
-        # write_next_state(next_brd_state)
-        # Retain block for debugging
-        return next_brd_state
+        return next_raid_node
 
     def brd_greedy_best_first_search(self):
-        [self.brd_max_p1_eval, self.brd_max_p2_eval] = init_eval_function(self.brd_state)
+        all_moves = []
         for i in range(5):
             for j in range(5):
                 if self.brd_state[i][j] == '*':
                     if check_sneak(self.brd_state, i, j):
-                        self.brd_sneak(i, j)
+                        sneak_node = self.brd_sneak(i, j)
+                        all_moves.append(sneak_node)
                     else:  # sneak not possible then its raid
-                        self.brd_raid(i, j)
-        next_brd_state = self.brd_make_move()
-        # here the init eval function will store the valutation of best state from previous
-        next_brd = Board(next_brd_state, self.brd_p1, self.brd_p2)
+                        raid_node = self.brd_raid(i, j)
+                        all_moves.append(raid_node)
+
+        all_moves_desc = sorted(all_moves, key=get_curr_p_eval, reverse=True)
+        next_brd = all_moves_desc[0]
+
         print '\n\nFinal Move'
-        print self.brd_raid_flag
         for t in range(5):
             print ("".join(map(str, next_brd.brd_state[t])))
-        print 'P1 INIT,  P2 INIT', next_brd.brd_init_p1_val, next_brd.brd_init_p2_val
+        print next_brd.brd_p1
+        print 'P1 INIT,  P2 INIT', next_brd.brd_curr_p1_eval, next_brd.brd_curr_p2_eval
         return next_brd
+
+
+def get_curr_p_eval(a_board):
+        return a_board.brd_curr_p1_eval
 
 
 def process_input(fn):
@@ -260,25 +196,6 @@ def process_input(fn):
             line_counter += 1
 
 
-def init_eval_function(curr_state):
-    init_x_eval = 0
-    init_o_eval = 0
-    init_b_eval = 0
-    for (bvl, csl) in zip(board_value, curr_state):
-        # print key
-        for (bvi, cbi) in zip(bvl, csl):
-            init_b_eval += bvi
-            if cbi == 'X':
-                init_x_eval += bvi
-            elif cbi == 'O':
-                init_o_eval += bvi
-
-    curr_x_eval = init_x_eval - init_o_eval
-    curr_o_eval = init_o_eval - init_x_eval
-    evaluated = [curr_x_eval, curr_o_eval]
-    return evaluated
-
-
 def check_sneak(curr_state, i, j):
     # check if any adjacent square contains sym_choice
     if i - 1 >= 0:  # check back move
@@ -311,7 +228,8 @@ def write_next_state(a_next_state):
 def main():
     file_name = sys.argv[2]
     process_input(file_name)
-    # process_input("input.txt")
+
+    # process_input("input1.txt")
     # print "Algo choice", alg_choice
     # print "Symbol Choice", sym_choice
     # print "Cutoff", cut_off
@@ -323,6 +241,8 @@ def main():
     #     print key
     # if init_board[0][2] == sym_choice: print init_board[0][2]
     # print "sym_choice in main is", sym_choice
+
+    # for alternating players reverse sym and opp in parameters
     input_board = Board(init_board, sym_choice, opp_choice)
     next_board = input_board.brd_greedy_best_first_search()
     write_next_state(next_board.brd_state)
