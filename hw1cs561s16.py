@@ -6,7 +6,8 @@ init_board = []
 sym_choice = ''
 opp_choice = ''
 alg_choice = ''
-cut_off = 0
+cut_off_p1 = 0
+cut_off_p2 = 0
 
 
 class Board:
@@ -14,20 +15,9 @@ class Board:
         self.brd_state = copy.deepcopy(curr_state)
         self.brd_p1 = player
         self.brd_p2 = opponent
-
-        # # These below 2 are useless as well now
-        # self.brd_max_i = 0
-        # self.brd_max_j = 0
-
-        # # max has become redundant too
-        # self.brd_max_p1_eval = 0
-        # self.brd_max_p2_eval = 0
-
-        # seems the below are redundant
-        # self.brd_init_p1_val, self.brd_init_p2_val = init_eval_function(self.brd_state)
-
         self.brd_curr_p1_eval, self.brd_curr_p2_eval = self.brd_eval_function()
         self.brd_raid_flag = False
+        # self.cut_off = cut_off
 
     def brd_eval_function(self):
         init_p1_eval = 0
@@ -168,7 +158,8 @@ def process_input(fn):
     global sym_choice
     global opp_choice
     global alg_choice
-    global cut_off
+    global cut_off_p1
+    # global cut_off_p2
 
     for line in file_handle:
         if line_counter == 0:
@@ -182,7 +173,7 @@ def process_input(fn):
                 opp_choice = 'X'
             line_counter += 1
         elif line_counter == 2:
-            cut_off = int(line.strip('\n'))
+            cut_off_p1 = int(line.strip('\n'))
             line_counter += 1
         elif line_counter > 2 and line_counter < 8:
             board_line = map(int, line.strip('\n').split())
@@ -232,7 +223,7 @@ def main():
     # process_input("input1.txt")
     # print "Algo choice", alg_choice
     # print "Symbol Choice", sym_choice
-    # print "Cutoff", cut_off
+    # print "Cutoff", cut_off_p1
     # print "VALUE BOARD"
     # for key in board_value:
     #     print key
