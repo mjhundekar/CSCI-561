@@ -48,8 +48,8 @@ class Board:
 
     def brd_eval_fun(self, move, i, j, front, right, back, left):
         if move == 's':
-                self.brd_curr_p1_eval += board_value[i][j]
-                self.brd_curr_p2_eval -= board_value[i][j]
+            self.brd_curr_p1_eval += board_value[i][j]
+            self.brd_curr_p2_eval -= board_value[i][j]
         elif move == 'r':
             # empty place
             self.brd_curr_p1_eval += board_value[i][j]
@@ -146,7 +146,7 @@ class Board:
 
 
 def get_curr_p_eval(a_board):
-        return a_board.brd_curr_p1_eval
+    return a_board.brd_curr_p1_eval
 
 
 def process_input(fn):
