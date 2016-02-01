@@ -1,5 +1,6 @@
 import copy
 import sys
+import decimal
 
 board_value = []
 init_board = []
@@ -11,13 +12,34 @@ cut_off_p2 = 0
 
 
 class Board:
-    def __init__(self, curr_state, player, opponent):
+    def __init__(self, curr_state, player, opponent, i, j, depth):
         self.brd_state = copy.deepcopy(curr_state)
         self.brd_p1 = player
         self.brd_p2 = opponent
         self.brd_curr_p1_eval, self.brd_curr_p2_eval = self.brd_eval_function()
         self.brd_raid_flag = False
+        self.brd_name = assign_node_name(i, j)
+        self.brd_depth = depth
         # self.cut_off = cut_off
+        self.alpha = decimal.Decimal('-Infinity')
+        self.beta = decimal.Decimal('Infinity')
+
+    def __str__(self):
+        # TODO
+        pass
+
+    def __repr__(self):
+        # DONE
+        return self.__str__()
+
+    def brd_to_string(self):
+        str_board = []
+        for t in range(5):
+            str_board.append(("".join(map(str, self.brd_state[t]))))
+        str_board[:] = ['\n'.join(str_board[:])]
+        str_board[0] += '\n'
+        return str(str_board[0])
+        pass
 
     def brd_eval_function(self):
         init_p1_eval = 0
@@ -72,10 +94,10 @@ class Board:
                 self.brd_curr_p1_eval += 2*board_value[i][j - 1]
                 self.brd_curr_p2_eval -= 2*board_value[i][j - 1]
 
-    def brd_sneak(self, i, j):
+    def brd_sneak(self, i, j, depth):
         next_board_state = copy.deepcopy(self.brd_state)
         next_board_state[i][j] = self.brd_p1
-        next_sneak_node = Board(next_board_state, self.brd_p1, self.brd_p2)
+        next_sneak_node = Board(next_board_state, self.brd_p1, self.brd_p2, i, j, depth)
 
         # Retain block for debugging
         print '\n\nSneak'
@@ -87,7 +109,7 @@ class Board:
 
         return next_sneak_node
 
-    def brd_raid(self, i, j):
+    def brd_raid(self, i, j, depth):
         p1 = self.brd_p1
         p2 = self.brd_p2
 
@@ -110,7 +132,7 @@ class Board:
             if next_board_state[i][j - 1] == p2:
                 next_board_state[i][j - 1] = p1
 
-        next_raid_node = Board(next_board_state, self.brd_p1, self.brd_p2)
+        next_raid_node = Board(next_board_state, self.brd_p1, self.brd_p2, i, j, depth)
 
         # Retain block for debugging
         print 'Raid'
@@ -128,10 +150,10 @@ class Board:
             for j in range(5):
                 if self.brd_state[i][j] == '*':
                     if check_sneak(self.brd_state, i, j):
-                        sneak_node = self.brd_sneak(i, j)
+                        sneak_node = self.brd_sneak(i, j, 1)
                         all_moves.append(sneak_node)
                     else:  # sneak not possible then its raid
-                        raid_node = self.brd_raid(i, j)
+                        raid_node = self.brd_raid(i, j, 1)
                         all_moves.append(raid_node)
 
         all_moves_desc = sorted(all_moves, key=get_curr_p_eval, reverse=True)
@@ -216,6 +238,15 @@ def write_next_state(a_next_state):
     f.close()
 
 
+def assign_node_name(i, j):
+    if i == j == 0:
+        name = 'root'
+    else:
+        alpha = chr(0 + ord('A'))
+        name = alpha + str(j)
+    return name
+
+
 def main():
     file_name = sys.argv[2]
     process_input(file_name)
@@ -234,8 +265,17 @@ def main():
     # print "sym_choice in main is", sym_choice
 
     # for alternating players reverse sym and opp in parameters
-    input_board = Board(init_board, sym_choice, opp_choice)
+    input_board = Board(init_board, sym_choice, opp_choice, 0, 0, 0)
     next_board = input_board.brd_greedy_best_first_search()
+    print '\n\n\nMAIN NEXT BOARD'
+    # print next_board.alpha
+    # print next_board.beta
+    # res = next_board.brd_to_string()
+    # test_file = open('Test.txt','w')
+    # test_file.write(res)
+    # test_file.write(res)
+    # test_file.write(res)
+    # test_file.write(res)
     write_next_state(next_board.brd_state)
 
     # eval_function(init_board)
