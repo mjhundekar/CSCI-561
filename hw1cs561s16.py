@@ -10,9 +10,11 @@ alg_choice = ''
 cut_off_p1 = 0
 cut_off_p2 = 0
 
+logfile = open('log.txt', 'w')
+
 
 class Board:
-    def __init__(self, curr_state, player, opponent, move, i, j, depth, prev_p1_eval, prev_p2_eval):
+    def __init__(self, curr_state, player, opponent, move, i, j, depth, next_p1_eval, next_p2_eval):
         """
 
         :rtype: Board
@@ -23,7 +25,7 @@ class Board:
         self.brd_raid_flag = False
         self.brd_move = move
         self.brd_curr_p1_eval, self.brd_curr_p2_eval = \
-            self.brd_eval_function(move, i, j, prev_p1_eval, prev_p2_eval)
+            self.brd_eval_function(move, next_p1_eval, next_p2_eval)
         self.brd_name = assign_node_name(i, j)
         self.brd_depth = depth
         # self.cut_off = cut_off
@@ -47,7 +49,7 @@ class Board:
         return str(str_board[0])
         pass
 
-    def brd_eval_function(self, move, i, j, prev_p1_eval, prev_p2_eval):
+    def brd_eval_function(self, move, next_p1_eval, next_p2_eval):
         init_p1_eval = 0
         init_p2_eval = 0
         init_b_eval = 0
@@ -70,14 +72,14 @@ class Board:
             # self.brd_curr_p2_eval = curr_p2_eval
 
         else:
-            curr_p1_eval = prev_p1_eval
-            curr_p2_eval = prev_p2_eval
-
-            curr_p1_eval += board_value[i][j]
-            curr_p2_eval -= board_value[i][j]
-
-            # [curr_p1_eval, curr_p2_eval] = self.optimized_brd_eval_fun(move, i, j, prev_p1_eval, prev_p2_eval)
-            evaluated = [curr_p1_eval, curr_p2_eval]
+            # curr_p1_eval = prev_p2_eval
+            # curr_p2_eval = prev_p1_eval
+            #
+            # curr_p1_eval += board_value[i][j]
+            # curr_p2_eval -= board_value[i][j]
+            #
+            # # [curr_p1_eval, curr_p2_eval] = self.optimized_brd_eval_fun(move, i, j, prev_p1_eval, prev_p2_eval)
+            evaluated = [next_p1_eval, next_p2_eval]
 
         return evaluated
 
@@ -92,18 +94,24 @@ class Board:
         next_board_state = copy.deepcopy(self.brd_state)
         next_board_state[i][j] = self.brd_p1
 
-        curr_p1_eval = self.brd_curr_p1_eval
-        curr_p2_eval = self.brd_curr_p2_eval
+        next_p2_eval = self.brd_curr_p1_eval
+        next_p1_eval = self.brd_curr_p2_eval
+
+        next_p2_eval += board_value[i][j]
+        next_p1_eval -= board_value[i][j]
+
+        # in the next board p1 and p2 will swap
         next_sneak_node = \
-            Board(next_board_state, self.brd_p1, self.brd_p2, 's', i, j, depth, curr_p1_eval, curr_p2_eval)
+            Board(next_board_state, self.brd_p2, self.brd_p1, 's', i, j, depth, next_p1_eval, next_p2_eval)
 
         # Retain block for debugging
-        print '\n\nSneak'
-        print 'i, j:', i, j
-        for t in range(5):
-            print ("".join(map(str, next_sneak_node.brd_state[t])))
-        print '\nNew_P1,Curr_P1:', next_sneak_node.brd_curr_p1_eval, self.brd_curr_p1_eval
-        print '\nNew_P2, Curr_P2:', next_sneak_node.brd_curr_p2_eval, self.brd_curr_p2_eval
+        # logfile.write('\n\nSneak')
+        # logfile.write(('\ni, j: ' + str(i) + ' ' + str(j)))
+        # logfile.write(next_sneak_node.brd_to_string())
+        # logfile.write(('\nNew_P1, Curr_P1:' + str(next_sneak_node.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p1_eval)))
+        # logfile.write(('\nNew_P2, Curr_P2:' + str(next_sneak_node.brd_curr_p2_eval) + ' ' + str(self.brd_curr_p2_eval)))
+        # for t in range(5):
+        #     logfile.write(("".join(map(str, next_sneak_node.brd_state[t]))))
 
         return next_sneak_node
 
@@ -113,46 +121,49 @@ class Board:
 
         next_board_state = copy.deepcopy(self.brd_state)
         next_board_state[i][j] = self.brd_p1
-        curr_p1_eval = self.brd_curr_p1_eval
-        curr_p2_eval = self.brd_curr_p2_eval
 
+        next_p1_eval = self.brd_curr_p2_eval
+        next_p2_eval = self.brd_curr_p1_eval
+
+        next_p2_eval += board_value[i][j]
+        next_p1_eval -= board_value[i][j]
+
+        # P1 and P2 are previous state p1 p2
         if i - 1 > 0:  # check back move
             if next_board_state[i - 1][j] == p2:
                 next_board_state[i - 1][j] = p1
-                curr_p1_eval += 2*board_value[i - 1][j]
-                curr_p2_eval -= 2*board_value[i - 1][j]
-                print 'Back Captured', curr_p1_eval, curr_p2_eval
+                next_p1_eval -= 2 * board_value[i - 1][j]
+                next_p2_eval += 2 * board_value[i - 1][j]
+                # print 'Back Captured', curr_p1_eval, curr_p2_eval
 
         if i + 1 < 5:  # check front move
             if next_board_state[i + 1][j] == p2:
                 next_board_state[i + 1][j] = p1
-                curr_p1_eval += 2*board_value[i + 1][j]
-                curr_p2_eval -= 2*board_value[i + 1][j]
-                print 'Front Captured', curr_p1_eval, curr_p2_eval
+                next_p1_eval -= 2 * board_value[i + 1][j]
+                next_p2_eval += 2 * board_value[i + 1][j]
+                # print 'Front Captured', curr_p1_eval, curr_p2_eval
 
         if j + 1 < 5:  # check right move
             if next_board_state[i][j + 1] == p2:
                 next_board_state[i][j + 1] = p1
-                curr_p1_eval += 2*board_value[i][j + 1]
-                curr_p2_eval -= 2*board_value[i][j + 1]
-                print 'Right Captured', curr_p1_eval, curr_p2_eval
+                next_p1_eval -= 2 * board_value[i][j + 1]
+                next_p2_eval += 2 * board_value[i][j + 1]
+                # print 'Right Captured', curr_p1_eval, curr_p2_eval
 
         if j - 1 > 0:  # check left move
             if next_board_state[i][j - 1] == p2:
                 next_board_state[i][j - 1] = p1
-                curr_p1_eval += 2*board_value[i][j - 1]
-                curr_p2_eval -= 2*board_value[i][j - 1]
-                print 'Left Captured', curr_p1_eval, curr_p2_eval
+                next_p1_eval -= 2 * board_value[i][j - 1]
+                next_p2_eval += 2 * board_value[i][j - 1]
+                # print 'Left Captured', curr_p1_eval, curr_p2_eval
 
-        next_raid_node = Board(next_board_state, self.brd_p1, self.brd_p2, 'r', i, j, depth, curr_p1_eval, curr_p2_eval)
+        next_raid_node = Board(next_board_state, self.brd_p2, self.brd_p1, 'r', i, j, depth, next_p1_eval, next_p2_eval)
 
         # Retain block for debugging
-        print 'Raid'
-        print 'i, j:', i, j
-        for t in range(5):
-            print ("".join(map(str, next_raid_node.brd_state[t])))
-        print '\nNew_P1,Curr_P1:', next_raid_node.brd_curr_p1_eval, self.brd_curr_p1_eval
-        print '\nNew_P2, Curr_P2:', next_raid_node.brd_curr_p2_eval, self.brd_curr_p2_eval
+        # logfile.write('\n\nRaid')
+        # logfile.write(('\ni, j: ' + str(i) + ' ' + str(j)))
+        # logfile.write(('\nNew_P1, Curr_P1:' + str(next_raid_node.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p1_eval)))
+        # logfile.write(('\nNew_P2, Curr_P2:' + str(next_raid_node.brd_curr_p2_eval) + ' ' + str(self.brd_curr_p2_eval)))
 
         return next_raid_node
 
@@ -161,26 +172,158 @@ class Board:
         for i in range(5):
             for j in range(5):
                 if self.brd_state[i][j] == '*':
-                    if check_sneak(self.brd_state, i, j):
+                    if self.brd_check_sneak(i, j):
                         sneak_node = self.brd_sneak(i, j, 1)
+                        logfile.write(
+                            '\n\nNext SNEAK i, j : ' + str(i) + ' ' + str(j) + '\n' + sneak_node.brd_to_string())
+                        logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
+                        logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) + ' ' + str(
+                            sneak_node.brd_curr_p2_eval))
                         all_moves.append(sneak_node)
                     else:  # sneak not possible then its raid
                         raid_node = self.brd_raid(i, j, 1)
+                        logfile.write(
+                            '\n\nNext Raid i, j : ' + str(i) + ' ' + str(j) + '\n' + raid_node.brd_to_string())
+                        logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
+                        logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) + ' ' + str(
+                            raid_node.brd_curr_p2_eval))
                         all_moves.append(raid_node)
 
-        all_moves_desc = sorted(all_moves, key=get_curr_p_eval, reverse=True)
+        all_moves_desc = sorted(all_moves, key=get_curr_p2_eval, reverse=True)
         next_brd = all_moves_desc[0]
 
         print '\n\nFinal Move'
-        for t in range(5):
-            print ("".join(map(str, next_brd.brd_state[t])))
+        # for t in range(5):
+        #     print ("".join(map(str, next_brd.brd_state[t])))
+        print next_brd.brd_to_string()
         print next_brd.brd_p1
         print 'P1 INIT,  P2 INIT', next_brd.brd_curr_p1_eval, next_brd.brd_curr_p2_eval
         return next_brd
 
+    def brd_min_max(self, depth, cut_off, player):
+        logfile.write('\nInside MIN_MAX\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+        logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+        next_move = self.max_move(depth, cut_off, player)
+        print next_move.brd_to_string()
+        return next_move
 
-def get_curr_p_eval(a_board):
+    def max_move(self, depth, cut_off, player):
+        # check if game has ended or if we have reached the cut off depth
+        global sym_choice
+        global opp_choice
+        if self.end_game() or depth == cut_off:
+            logfile.write('\nInside cut off MAX_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+            logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+            return self
+        else:
+            depth += 1
+            # generate all moves for self
+            logfile.write('\nGenerating all moves MAX_MOVE: ' + str(self.brd_p1) + '\n Depth : ' + str(
+                depth) + '\n' + self.brd_to_string())
+            logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+            all_moves = []
+            for i in range(5):
+                for j in range(5):
+                    if self.brd_state[i][j] == '*':
+                        if self.brd_check_sneak(i, j):
+                            sneak_node = self.brd_sneak(i, j, depth)
+                            t = depth
+                            logfile.write(
+                                '\n\nNext SNEAK MAX_MOVE \n Depth : ' + str(t) + ' i, j: ' + str(i) + ' ' + str(
+                                    j) + '\n' + sneak_node.brd_to_string())
+                            logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
+                            logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) + ' ' + str(
+                                sneak_node.brd_curr_p2_eval))
+                            all_moves.append(sneak_node)
+                        else:  # sneak not possible then its raid
+                            raid_node = self.brd_raid(i, j, depth)
+                            t = depth
+                            logfile.write(
+                                '\n\nNext RAID MAX_MOVE \n Depth :  ' + str(t) + ' i, j: ' + str(i) + ' ' + str(
+                                    j) + '\n' + raid_node.brd_to_string())
+                            logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
+                            logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) + ' ' + str(
+                                raid_node.brd_curr_p2_eval))
+                            all_moves.append(raid_node)
+        next_moves = []
+        for move in all_moves:
+            next_move = move.min_move(depth, cut_off, player)
+            next_moves.append(next_move)
+        # Return the move with the max P2 value
+        next_moves_desc = sorted(next_moves, key=get_curr_p2_eval, reverse=False)
+        best_move = next_moves_desc[0]
+        logfile.write('\n\nBEST MAX_MOVE at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
+        logfile.write(
+            '\n Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(best_move.brd_curr_p2_eval))
+        return best_move
+
+    def min_move(self, depth, cut_off, player):
+        if self.end_game() or depth == cut_off:
+            logfile.write('\nInside cut off MIN_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+            logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+            return self
+        else:
+            # generate all moves
+            depth += 1
+            logfile.write('\nGenerating all moves MIN_MOVE \n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+            logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+            all_moves = []
+            for i in range(5):
+                for j in range(5):
+                    if self.brd_state[i][j] == '*':
+                        if self.brd_check_sneak(i, j):
+                            sneak_node = self.brd_sneak(i, j, depth)
+                            t = depth
+                            (logfile.write('\n\nNext SNEAK MIN_MOVE \n Depth : ' + str(t) + ' i, j: ' +
+                                           str(i) + ' ' + str(j) + '\n' + sneak_node.brd_to_string()))
+                            logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
+                            (logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) +
+                                           ' ' + str(sneak_node.brd_curr_p2_eval)))
+                            all_moves.append(sneak_node)
+                        else:  # sneak not possible then its raid
+                            raid_node = self.brd_raid(i, j, depth)
+                            t = depth
+                            (logfile.write('\n\nNext RAID MIN_MOVE \n Depth :  ' + str(t) + ' i, j: ' +
+                                           str(i) + ' ' + str(j) + '\n' + raid_node.brd_to_string()))
+                            logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
+                            (logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) +
+                                           ' ' + str(raid_node.brd_curr_p2_eval)))
+                            all_moves.append(raid_node)
+            next_moves = []
+            for move in all_moves:
+                next_move = move.max_move(depth, cut_off, player)
+                next_moves.append(next_move)
+            # Return the move with minimum P1 value
+            next_moves_asc = sorted(next_moves, key=get_curr_p1_eval, reverse=False)
+            best_move = next_moves_asc[0]
+            logfile.write('\n\nBEST MIN_MOVE at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
+            logfile.write(
+                '\n Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(best_move.brd_curr_p2_eval))
+            return best_move
+
+    def brd_check_sneak(self, i, j):
+        # check if any adjacent square contains sym_choice
+        if i - 1 >= 0:  # check back move
+            if self.brd_state[i - 1][j] == self.brd_p1:
+                return False
+        if i + 1 < 5:  # check front move
+            if self.brd_state[i + 1][j] == self.brd_p1:
+                return False
+        if j + 1 < 5:  # check right move
+            if self.brd_state[i][j + 1] == self.brd_p1:
+                return False
+        if j - 1 >= 0:  # check left move
+            if self.brd_state[i][j - 1] == self.brd_p1:
+                return False
+        return True
+
+
+def get_curr_p1_eval(a_board):
     return a_board.brd_curr_p1_eval
+
+
+def get_curr_p2_eval(a_board):
+    return a_board.brd_curr_p2_eval
 
 
 def process_input(fn):
@@ -197,7 +340,7 @@ def process_input(fn):
 
     for line in file_handle:
         if line_counter == 0:
-            alg_choice = line.strip('\n')
+            alg_choice = int(line.strip('\n'))
             line_counter += 1
         elif line_counter == 1:
             sym_choice = line.strip('\n')
@@ -219,23 +362,6 @@ def process_input(fn):
             init_board.append(curr_line)
             # j = chr(ord(j) + 1)
             line_counter += 1
-
-
-def check_sneak(curr_state, i, j):
-    # check if any adjacent square contains sym_choice
-    if i - 1 >= 0:  # check back move
-        if curr_state[i - 1][j] == sym_choice:
-            return False
-    if i + 1 < 5:  # check front move
-        if curr_state[i + 1][j] == sym_choice:
-            return False
-    if j + 1 < 5:  # check right move
-        if curr_state[i][j + 1] == sym_choice:
-            return False
-    if j - 1 >= 0:  # check left move
-        if curr_state[i][j - 1] == sym_choice:
-            return False
-    return True
 
 
 # oop version not needed
@@ -262,6 +388,8 @@ def assign_node_name(i, j):
 def main():
     file_name = sys.argv[2]
     process_input(file_name)
+    global cut_off_p1
+    global alg_choice
 
     # process_input("input1.txt")
     # print "Algo choice", alg_choice
@@ -278,19 +406,23 @@ def main():
 
     # for alternating players reverse sym and opp in parameters
     input_board = Board(init_board, sym_choice, opp_choice, 'i', 0, 0, 0, 0, 0)
-    next_board = input_board.brd_greedy_best_first_search()
-    print '\n\n\nMAIN NEXT BOARD'
-    # print next_board.alpha
-    # print next_board.beta
-    # res = next_board.brd_to_string()
-    # test_file = open('Test.txt','w')
-    # test_file.write(res)
-    # test_file.write(res)
-    # test_file.write(res)
-    # test_file.write(res)
-    write_next_state(next_board.brd_state)
-
-    # eval_function(init_board)
+    #   0, 0, 0, 0, 0)
+    if alg_choice == 1:
+        next_board = input_board.brd_greedy_best_first_search()
+        write_next_state(next_board.brd_state)
+        print '\n\n\nMAIN NEXT BOARD'
+        # print next_board.alpha
+        # print next_board.beta
+        # res = next_board.brd_to_string()
+        # test_file = open('Test.txt','w')
+        # test_file.write(res)
+        # test_file.write(res)
+        # test_file.write(res)
+        # test_file.write(res)
+    if alg_choice == 2:
+        print cut_off_p1
+        next_board = input_board.brd_min_max(0, cut_off_p1, input_board.brd_p1)
+        write_next_state(next_board.brd_state)
 
 
 if __name__ == '__main__':
