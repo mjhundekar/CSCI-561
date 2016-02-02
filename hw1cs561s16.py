@@ -12,12 +12,18 @@ cut_off_p2 = 0
 
 
 class Board:
-    def __init__(self, curr_state, player, opponent, i, j, depth):
+    def __init__(self, curr_state, player, opponent, move, i, j, depth, prev_p1_eval, prev_p2_eval):
+        """
+
+        :rtype: Board
+        """
         self.brd_state = copy.deepcopy(curr_state)
         self.brd_p1 = player
         self.brd_p2 = opponent
-        self.brd_curr_p1_eval, self.brd_curr_p2_eval = self.brd_eval_function()
         self.brd_raid_flag = False
+        self.brd_move = move
+        self.brd_curr_p1_eval, self.brd_curr_p2_eval = \
+            self.brd_eval_function(move, i, j, prev_p1_eval, prev_p2_eval)
         self.brd_name = assign_node_name(i, j)
         self.brd_depth = depth
         # self.cut_off = cut_off
@@ -41,23 +47,37 @@ class Board:
         return str(str_board[0])
         pass
 
-    def brd_eval_function(self):
+    def brd_eval_function(self, move, i, j, prev_p1_eval, prev_p2_eval):
         init_p1_eval = 0
         init_p2_eval = 0
         init_b_eval = 0
 
-        for i in range(5):
-            # print key
-            for j in range(5):
-                init_b_eval += board_value[i][j]
-                if self.brd_state[i][j] == self.brd_p1:
-                    init_p1_eval += board_value[i][j]
-                elif self.brd_state[i][j] == self.brd_p2:
-                    init_p2_eval += board_value[i][j]
+        if move == 'i':  # Root node need to evaluate from scratch
+            for i in range(5):
+                # print key
+                for j in range(5):
+                    init_b_eval += board_value[i][j]
+                    if self.brd_state[i][j] == self.brd_p1:
+                        init_p1_eval += board_value[i][j]
+                    elif self.brd_state[i][j] == self.brd_p2:
+                        init_p2_eval += board_value[i][j]
 
-        curr_p1_eval = init_p1_eval - init_p2_eval
-        curr_p2_eval = init_p2_eval - init_p1_eval
-        evaluated = [curr_p1_eval, curr_p2_eval]
+            curr_p1_eval = init_p1_eval - init_p2_eval
+            curr_p2_eval = init_p2_eval - init_p1_eval
+            evaluated = [curr_p1_eval, curr_p2_eval]
+
+            # self.brd_curr_p1_eval = curr_p1_eval
+            # self.brd_curr_p2_eval = curr_p2_eval
+
+        else:
+            curr_p1_eval = prev_p1_eval
+            curr_p2_eval = prev_p2_eval
+
+            curr_p1_eval += board_value[i][j]
+            curr_p2_eval -= board_value[i][j]
+
+            # [curr_p1_eval, curr_p2_eval] = self.optimized_brd_eval_fun(move, i, j, prev_p1_eval, prev_p2_eval)
+            evaluated = [curr_p1_eval, curr_p2_eval]
 
         return evaluated
 
@@ -68,36 +88,14 @@ class Board:
                     return False
         return True
 
-    def brd_eval_fun(self, move, i, j, front, right, back, left):
-        if move == 's':
-            self.brd_curr_p1_eval += board_value[i][j]
-            self.brd_curr_p2_eval -= board_value[i][j]
-        elif move == 'r':
-            # empty place
-            self.brd_curr_p1_eval += board_value[i][j]
-            self.brd_curr_p2_eval -= board_value[i][j]
-
-            # check which neighbour contain O and then add those values in X and reduce twice that value from O
-            if front:  # check front move
-                self.brd_curr_p1_eval += 2*board_value[i + 1][j]
-                self.brd_curr_p2_eval -= 2*board_value[i + 1][j]
-
-            if right:  # check right move
-                self.brd_curr_p1_eval += 2*board_value[i][j + 1]
-                self.brd_curr_p2_eval -= 2*board_value[i][j + 1]
-
-            if back:  # check back move
-                self.brd_curr_p1_eval += 2*board_value[i - 1][j]
-                self.brd_curr_p2_eval -= 2*board_value[i - 1][j]
-
-            if left:  # check left move
-                self.brd_curr_p1_eval += 2*board_value[i][j - 1]
-                self.brd_curr_p2_eval -= 2*board_value[i][j - 1]
-
     def brd_sneak(self, i, j, depth):
         next_board_state = copy.deepcopy(self.brd_state)
         next_board_state[i][j] = self.brd_p1
-        next_sneak_node = Board(next_board_state, self.brd_p1, self.brd_p2, i, j, depth)
+
+        curr_p1_eval = self.brd_curr_p1_eval
+        curr_p2_eval = self.brd_curr_p2_eval
+        next_sneak_node = \
+            Board(next_board_state, self.brd_p1, self.brd_p2, 's', i, j, depth, curr_p1_eval, curr_p2_eval)
 
         # Retain block for debugging
         print '\n\nSneak'
@@ -115,24 +113,38 @@ class Board:
 
         next_board_state = copy.deepcopy(self.brd_state)
         next_board_state[i][j] = self.brd_p1
+        curr_p1_eval = self.brd_curr_p1_eval
+        curr_p2_eval = self.brd_curr_p2_eval
 
         if i - 1 > 0:  # check back move
             if next_board_state[i - 1][j] == p2:
                 next_board_state[i - 1][j] = p1
+                curr_p1_eval += 2*board_value[i - 1][j]
+                curr_p2_eval -= 2*board_value[i - 1][j]
+                print 'Back Captured', curr_p1_eval, curr_p2_eval
 
         if i + 1 < 5:  # check front move
             if next_board_state[i + 1][j] == p2:
                 next_board_state[i + 1][j] = p1
+                curr_p1_eval += 2*board_value[i + 1][j]
+                curr_p2_eval -= 2*board_value[i + 1][j]
+                print 'Front Captured', curr_p1_eval, curr_p2_eval
 
         if j + 1 < 5:  # check right move
             if next_board_state[i][j + 1] == p2:
                 next_board_state[i][j + 1] = p1
+                curr_p1_eval += 2*board_value[i][j + 1]
+                curr_p2_eval -= 2*board_value[i][j + 1]
+                print 'Right Captured', curr_p1_eval, curr_p2_eval
 
         if j - 1 > 0:  # check left move
             if next_board_state[i][j - 1] == p2:
                 next_board_state[i][j - 1] = p1
+                curr_p1_eval += 2*board_value[i][j - 1]
+                curr_p2_eval -= 2*board_value[i][j - 1]
+                print 'Left Captured', curr_p1_eval, curr_p2_eval
 
-        next_raid_node = Board(next_board_state, self.brd_p1, self.brd_p2, i, j, depth)
+        next_raid_node = Board(next_board_state, self.brd_p1, self.brd_p2, 'r', i, j, depth, curr_p1_eval, curr_p2_eval)
 
         # Retain block for debugging
         print 'Raid'
@@ -265,7 +277,7 @@ def main():
     # print "sym_choice in main is", sym_choice
 
     # for alternating players reverse sym and opp in parameters
-    input_board = Board(init_board, sym_choice, opp_choice, 0, 0, 0)
+    input_board = Board(init_board, sym_choice, opp_choice, 'i', 0, 0, 0, 0, 0)
     next_board = input_board.brd_greedy_best_first_search()
     print '\n\n\nMAIN NEXT BOARD'
     # print next_board.alpha
