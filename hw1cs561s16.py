@@ -11,6 +11,7 @@ cut_off_p1 = 0
 cut_off_p2 = 0
 
 logfile = open('log.txt', 'w')
+traverse_log = open('traverse_log.txt', 'w')
 
 
 class Board:
@@ -26,12 +27,17 @@ class Board:
         self.brd_move = move
         self.brd_curr_p1_eval, self.brd_curr_p2_eval = \
             self.brd_eval_function(move, next_p1_eval, next_p2_eval)
-        self.brd_name = assign_node_name(i, j)
+        self.brd_name = assign_node_name(move, i, j)
         self.brd_depth = depth
         # self.cut_off = cut_off
         self.alpha = decimal.Decimal('-Infinity')  # max
         self.beta = decimal.Decimal('Infinity')    # min
-        self.val_min_max = decimal.Decimal('-Infinity')  # max
+        if self.brd_depth % 2 == 1:
+            self.val_min_max = decimal.Decimal('Infinity')  # max
+        elif self.brd_depth == 0:
+            self.val_min_max = decimal.Decimal('-Infinity')  # max
+        else:
+            self.val_min_max = decimal.Decimal('Infinity')  # max
 
     def __str__(self):
         # TODO
@@ -119,7 +125,7 @@ class Board:
         next_p1_eval -= board_value[i][j]
 
         # P1 and P2 are previous state p1 p2
-        if i - 1 > 0:  # check back move
+        if i - 1 >= 0:  # check back move
             if next_board_state[i - 1][j] == p2:
                 next_board_state[i - 1][j] = p1
                 next_p1_eval -= 2 * board_value[i - 1][j]
@@ -140,7 +146,7 @@ class Board:
                 next_p2_eval += 2 * board_value[i][j + 1]
                 # print 'Right Captured', curr_p1_eval, curr_p2_eval
 
-        if j - 1 > 0:  # check left move
+        if j - 1 >= 0:  # check left move
             if next_board_state[i][j - 1] == p2:
                 next_board_state[i][j - 1] = p1
                 next_p1_eval -= 2 * board_value[i][j - 1]
@@ -193,6 +199,8 @@ class Board:
     def brd_min_max(self, depth, cut_off, player):
         logfile.write('\nInside MIN_MAX\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
         logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+        traverse_log.write(self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
+
         next_move = self.max_move(depth, cut_off, player)
         print next_move.brd_to_string()
         return next_move
@@ -203,6 +211,7 @@ class Board:
             logfile.write('\nInside cut off MAX_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
             logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
             self.val_min_max = self.brd_curr_p1_eval
+
             return self
         else:
             depth += 1
@@ -219,7 +228,7 @@ class Board:
                     if self.brd_state[i][j] == '*':
                         # next move either be sneak or raid
                         if self.brd_check_sneak(i, j):
-                            sneak_node = self.brd_sneak(i, j, depth)
+                            sneak_node = self.brd_sneak(i, j, self.brd_depth + 1)
                             next_move = sneak_node
                             t = depth
 
@@ -242,13 +251,17 @@ class Board:
                             logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) + ' ' + str(
                                 raid_node.brd_curr_p2_eval))
 
+                        traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
                         # Call the min move on next move
                         next_min_move = next_move.min_move(depth, cut_off, player)
 
                         if next_min_move.val_min_max > temp_max:
                             temp_max = next_min_move.val_min_max
                             next_move.val_min_max = temp_max
-
+                            self.val_min_max = temp_max
+                        if depth > 1:
+                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
+                        traverse_log.write(self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
                         all_moves.append(next_move)
 
             all_moves = sorted(all_moves, key=get_val_min_max, reverse=True)
@@ -257,6 +270,7 @@ class Board:
         logfile.write('\n\nBEST MAX_MOVE at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
         logfile.write(
             '\nCheck Here Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(best_move.brd_curr_p2_eval))
+
         return best_move
 
     def min_move(self, depth, cut_off, player):
@@ -301,7 +315,10 @@ class Board:
                         if next_max_move.val_min_max < temp_min:
                             temp_min = next_max_move.val_min_max
                             next_move.val_min_max = temp_min
-
+                            self.val_min_max = temp_min
+                        if depth > 1:
+                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
+                        traverse_log.write(self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
                         all_moves.append(next_move)
 
             all_moves = sorted(all_moves, key=get_val_min_max, reverse=False)
@@ -310,7 +327,6 @@ class Board:
         logfile.write('\n\nBEST MIN_MOVE at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
         logfile.write(
             '\n Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(best_move.brd_curr_p2_eval))
-
         return best_move
 
     def brd_check_sneak(self, i, j):
@@ -392,12 +408,12 @@ def write_next_state(a_next_state):
     f.close()
 
 
-def assign_node_name(i, j):
-    if i == j == 0:
+def assign_node_name(move, i, j):
+    if i == j == 0 and move == 'i':
         name = 'root'
     else:
-        alpha = chr(0 + ord('A'))
-        name = alpha + str(j)
+        alpha = chr(j + ord('A'))
+        name = alpha + str(i + 1)
     return name
 
 
@@ -407,7 +423,7 @@ def main():
     global cut_off_p1
     global alg_choice
 
-    # process_input("input1.txt")
+    # process_input("input4.txt")
     # print "Algo choice", alg_choice
     # print "Symbol Choice", sym_choice
     # print "Cutoff", cut_off_p1
@@ -437,6 +453,7 @@ def main():
         # test_file.write(res)
     if alg_choice == 2:
         print cut_off_p1
+        traverse_log.write('My Log\nNode,Depth,Value\n')
         next_board = input_board.brd_min_max(0, cut_off_p1, input_board.brd_p1)
         write_next_state(next_board.brd_state)
 
