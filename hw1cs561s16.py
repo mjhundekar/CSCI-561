@@ -189,8 +189,6 @@ class Board:
         next_brd = all_moves_desc[0]
 
         print '\n\nFinal Move'
-        # for t in range(5):
-        #     print ("".join(map(str, next_brd.brd_state[t])))
         print next_brd.brd_to_string()
         print next_brd.brd_p1
         print 'P1 INIT,  P2 INIT', next_brd.brd_curr_p1_eval, next_brd.brd_curr_p2_eval
@@ -250,17 +248,21 @@ class Board:
                             logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
                             logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) + ' ' + str(
                                 raid_node.brd_curr_p2_eval))
-
-                        traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
+                        if depth % 2 == 1 and not depth == cut_off:
+                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
                         # Call the min move on next move
                         next_min_move = next_move.min_move(depth, cut_off, player)
+                        if depth == cut_off:
+                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
 
                         if next_min_move.val_min_max > temp_max:
                             temp_max = next_min_move.val_min_max
                             next_move.val_min_max = temp_max
                             self.val_min_max = temp_max
+
                         if depth > 1:
                             traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
+
                         traverse_log.write(self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
                         all_moves.append(next_move)
 
@@ -277,7 +279,7 @@ class Board:
         if self.end_game() or depth == cut_off:
             logfile.write('\nInside cut off MIN_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
             logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
-            self.val_min_max = self.brd_curr_p1_eval
+            self.val_min_max = -self.brd_curr_p1_eval   # Important Fix
             return self
         else:
             # generate all moves
