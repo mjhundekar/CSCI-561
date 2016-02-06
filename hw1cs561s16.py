@@ -9,7 +9,7 @@ opp_choice = ''
 alg_choice = ''
 cut_off_p1 = 0
 cut_off_p2 = 0
-
+game_flag = False
 answer = 0
 pointsMatrix = [[] for x in range(5)]
 inputState = []
@@ -596,7 +596,7 @@ class Board:
 ###################################################################################################################
 
 
-class GameState:
+class AB_Game_State:
     def __init__(self, inputState, play, d, parent, scores={}, alpha=-9999, beta=9999):
         self.parent = parent
         self.inputState = list(inputState)
@@ -612,45 +612,50 @@ class GameState:
             self.opponent = "X"
 
 
-def checkMoveType(inputCounter, gameState):
-    row = inputCounter / 5
-    column = inputCounter % 5
-    if row + 1 < 5 and gameState.inputState[row + 1][column] == gameState.play:
+def check_sneak_raid(icounter, curr_game_state):
+    row = icounter / 5
+    column = icounter % 5
+    if row + 1 < 5 and curr_game_state.inputState[row + 1][column] == curr_game_state.play:
         return "R"
-    elif row - 1 >= 0 and gameState.inputState[row - 1][column] == gameState.play:
+    elif row - 1 >= 0 and curr_game_state.inputState[row - 1][column] == curr_game_state.play:
         return "R"
-    elif column - 1 >= 0 and gameState.inputState[row][column - 1] == gameState.play:
+    elif column - 1 >= 0 and curr_game_state.inputState[row][column - 1] == curr_game_state.play:
         return "R"
-    elif column + 1 < 5 and gameState.inputState[row][column + 1] == gameState.play:
+    elif column + 1 < 5 and curr_game_state.inputState[row][column + 1] == curr_game_state.play:
         return "R"
     else:
         return "S"
 
 
-def calculateRaidScore(inputCounter, opponentScore, gameState):
+def compute_raid_score(icounter, opp_score, curr_game_state):
     global pointsMatrix
-    row = inputCounter / 5
-    column = inputCounter % 5
-    raidScore = int(pointsMatrix[row][column])
-    if row + 1 < 5 and gameState.inputState[row + 1][column] == gameState.opponent:
-        raidScore += int(pointsMatrix[row + 1][column])
-        opponentScore -= int(pointsMatrix[row + 1][column])
-    if row - 1 >= 0 and gameState.inputState[row - 1][column] == gameState.opponent:
-        raidScore += int(pointsMatrix[row - 1][column])
-        opponentScore -= int(pointsMatrix[row - 1][column])
-    if column - 1 >= 0 and gameState.inputState[row][column - 1] == gameState.opponent:
-        raidScore += int(pointsMatrix[row][column - 1])
-        opponentScore -= int(pointsMatrix[row][column - 1])
-    if column + 1 < 5 and gameState.inputState[row][column + 1] == gameState.opponent:
-        raidScore += int(pointsMatrix[row][column + 1])
-        opponentScore -= int(pointsMatrix[row][column + 1])
-    if (play == gameState.play):
-        return (raidScore + playScore - opponentScore)
+    row = icounter / 5
+    column = icounter % 5
+    raid_score = int(pointsMatrix[row][column])
+    # Forward
+    if row + 1 < 5 and curr_game_state.inputState[row + 1][column] == curr_game_state.opponent:
+        raid_score += int(pointsMatrix[row + 1][column])
+        opp_score -= int(pointsMatrix[row + 1][column])
+    # Back
+    if row - 1 >= 0 and curr_game_state.inputState[row - 1][column] == curr_game_state.opponent:
+        raid_score += int(pointsMatrix[row - 1][column])
+        opp_score -= int(pointsMatrix[row - 1][column])
+    # Left
+    if column - 1 >= 0 and curr_game_state.inputState[row][column - 1] == curr_game_state.opponent:
+        raid_score += int(pointsMatrix[row][column - 1])
+        opp_score -= int(pointsMatrix[row][column - 1])
+    # Right
+    if column + 1 < 5 and curr_game_state.inputState[row][column + 1] == curr_game_state.opponent:
+        raid_score += int(pointsMatrix[row][column + 1])
+        opp_score -= int(pointsMatrix[row][column + 1])
+        
+    if play == curr_game_state.play:
+        return raid_score + playScore - opp_score
     else:
-        return -1 * (raidScore + playScore - opponentScore)
+        return (-1 * (raid_score + playScore - opp_score))
 
 
-def getPos(x):
+def get_state_name(x):
     if x == "root":
         return x
     if x % 5 == 0:
@@ -674,20 +679,20 @@ def formatOutput(x):
         return str(x)
 
 
-def initialScores(gameState):
+def init_board_score(curr_game_state):
     global playScore
     global opponentScore
     global pointsMatrix
     playScore = 0
     opponentScore = 0
     for y in range(25):
-        if gameState.inputState[y / 5][y % 5] == gameState.play:
+        if curr_game_state.inputState[y / 5][y % 5] == curr_game_state.play:
             playScore += int(pointsMatrix[y / 5][y % 5])
-        elif gameState.inputState[y / 5][y % 5] == gameState.opponent:
+        elif curr_game_state.inputState[y / 5][y % 5] == curr_game_state.opponent:
             opponentScore += int(pointsMatrix[y / 5][y % 5])
 
 
-def getOutput(position, gameState):
+def get_next_board(position, gameState):
     inputState = list(gameState.inputState)
     inputState[position / 5] = inputState[position / 5][:position % 5] + gameState.play + inputState[position / 5][
                                                                                           position % 5 + 1:]
@@ -710,81 +715,82 @@ def getOutput(position, gameState):
     return inputState
 
 
-def alphaBeta(gameState, cutoffdepth):
+def final_alpha_beta(curr_game_state, cut_off):
     global pointsMatrix
-    if gameState.d < cutoffdepth - 1:
+    if curr_game_state.d < cut_off - 1:
         for x in range(25):
             # trial check
-            if gameState.inputState[x / 5][x % 5] == "*":
-                move = checkMoveType(x, gameState)
-                input1 = list(gameState.inputState)
+            if curr_game_state.inputState[x / 5][x % 5] == "*":
+                move = check_sneak_raid(x, curr_game_state)
+                input1 = list(curr_game_state.inputState)
                 if move == "S":
-                    input1[x / 5] = gameState.inputState[x / 5][:x % 5] + gameState.play + gameState.inputState[x / 5][
+                    input1[x / 5] = curr_game_state.inputState[x / 5][:x % 5] + curr_game_state.play + curr_game_state.inputState[x / 5][
                                                                                            x % 5 + 1:]
                 else:
-                    input1 = getOutput(x, gameState)
-                if gameState.d % 2 == 1:
-                    (traverse_log.write(str(getPos(x)) + "," + str(gameState.d + 1) + ",-Infinity" + "," +
-                                          formatOutput(gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
+                    input1 = get_next_board(x, curr_game_state)
+                if curr_game_state.d % 2 == 1:
+                    (traverse_log.write(str(get_state_name(x)) + "," + str(curr_game_state.d + 1) + ",-Infinity" + "," +
+                                          formatOutput(curr_game_state.alpha) + "," + formatOutput(curr_game_state.beta) + '\n'))
                 else:
-                    (traverse_log.write(str(getPos(x)) + "," + str(gameState.d + 1) + ",Infinity" + "," + formatOutput(
-                        gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
-                newGamestate = GameState(input1, gameState.opponent, gameState.d + 1, x, {}, gameState.alpha,
-                                         gameState.beta)
-                answer, gameState.scores[x] = alphaBeta(newGamestate, cutoffdepth)
-                if gameState.alpha >= gameState.beta:
+                    (traverse_log.write(str(get_state_name(x)) + "," + str(curr_game_state.d + 1) + ",Infinity" + "," + formatOutput(
+                        curr_game_state.alpha) + "," + formatOutput(curr_game_state.beta) + '\n'))
+                newcurr_game_state = AB_Game_State(input1, curr_game_state.opponent, curr_game_state.d + 1, x, {}, curr_game_state.alpha,
+                                         curr_game_state.beta)
+                answer, curr_game_state.scores[x] = final_alpha_beta(newcurr_game_state, cut_off)
+                if curr_game_state.alpha >= curr_game_state.beta:
                     break
-                if gameState.d % 2 == 1:
-                    gameState.value = gameState.scores[min(gameState.scores, key=gameState.scores.get)]
-                    gameState.beta = gameState.value
-                    (traverse_log.write(str(getPos(gameState.parent)) + "," + str(gameState.d) + "," + str(
-                        gameState.value) + "," + formatOutput(gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
+                if curr_game_state.d % 2 == 1:
+                    curr_game_state.value = curr_game_state.scores[min(curr_game_state.scores, key=curr_game_state.scores.get)]
+                    curr_game_state.beta = curr_game_state.value
+                    (traverse_log.write(str(get_state_name(curr_game_state.parent)) + "," + str(curr_game_state.d) + "," + str(
+                        curr_game_state.value) + "," + formatOutput(curr_game_state.alpha) + "," + formatOutput(curr_game_state.beta) + '\n'))
 
                 else:
-                    gameState.value = gameState.scores[max(gameState.scores, key=gameState.scores.get)]
-                    gameState.alpha = gameState.value
-                    (traverse_log.write(str(getPos(gameState.parent)) + "," + str(gameState.d) + "," + str(
-                        gameState.value) + "," + formatOutput(gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
+                    curr_game_state.value = curr_game_state.scores[max(curr_game_state.scores, key=curr_game_state.scores.get)]
+                    curr_game_state.alpha = curr_game_state.value
+                    (traverse_log.write(str(get_state_name(curr_game_state.parent)) + "," + str(curr_game_state.d) + "," + str(
+                        curr_game_state.value) + "," + formatOutput(curr_game_state.alpha) + "," + formatOutput(curr_game_state.beta) + '\n'))
 
-    elif gameState.d == cutoffdepth - 1:
-        initialScores(gameState)
-        prevAlpha = "-Infinity"
-        prevBeta = "Infinity"
+    elif curr_game_state.d == cut_off - 1:
+        init_board_score(curr_game_state)
+        prev_alpha = "-Infinity"
+        prev_beta = "Infinity"
         for x in range(25):
-            if gameState.inputState[x / 5][x % 5] == "*":
-                move = checkMoveType(x, gameState)
+            if curr_game_state.inputState[x / 5][x % 5] == "*":
+                move = check_sneak_raid(x, curr_game_state)
                 if move == "S":
-                    if play == gameState.play:
-                        gameState.scores[x] = (int(pointsMatrix[x / 5][x % 5]) + (playScore - opponentScore))
+                    if play == curr_game_state.play:
+                        curr_game_state.scores[x] = (int(pointsMatrix[x / 5][x % 5]) + (playScore - opponentScore))
                     else:
-                        gameState.scores[x] = -1 * (int(pointsMatrix[x / 5][x % 5]) + (playScore - opponentScore))
+                        curr_game_state.scores[x] = -1 * (int(pointsMatrix[x / 5][x % 5]) + (playScore - opponentScore))
                 else:
-                    gameState.scores[x] = (calculateRaidScore(x, opponentScore, gameState))
-                (traverse_log.write(str(getPos(x)) + "," + str(gameState.d + 1) + "," + str(gameState.scores[x]) + "," + formatOutput(
-                    gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
-                prevAlpha = gameState.alpha
-                prevBeta = gameState.beta
-                if gameState.d % 2 == 1:
-                    val = gameState.scores[min(gameState.scores, key=gameState.scores.get)]
-                    if gameState.beta > val:
-                        gameState.beta = val
+                    curr_game_state.scores[x] = (compute_raid_score(x, opponentScore, curr_game_state))
+                (traverse_log.write(str(get_state_name(x)) + "," + str(curr_game_state.d + 1) + "," + str(curr_game_state.scores[x]) + "," + formatOutput(
+                    curr_game_state.alpha) + "," + formatOutput(curr_game_state.beta) + '\n'))
+                prev_alpha = curr_game_state.alpha
+                prev_beta = curr_game_state.beta
+                if curr_game_state.d % 2 == 1:
+                    val = curr_game_state.scores[min(curr_game_state.scores, key=curr_game_state.scores.get)]
+                    if curr_game_state.beta > val:
+                        curr_game_state.beta = val
                 else:
-                    val = gameState.scores[max(gameState.scores, key=gameState.scores.get)]
-                    if gameState.alpha < val:
-                        gameState.alpha = val
-                gameState.value = val
-                if gameState.alpha >= gameState.beta:
-                    (traverse_log.write(str(getPos(gameState.parent)) + "," + str(gameState.d) + "," + str(val) + "," + formatOutput(
-                        prevAlpha) + "," + formatOutput(prevBeta) + '\n'))
+                    val = curr_game_state.scores[max(curr_game_state.scores, key=curr_game_state.scores.get)]
+                    if curr_game_state.alpha < val:
+                        curr_game_state.alpha = val
+                curr_game_state.value = val
+                if curr_game_state.alpha >= curr_game_state.beta:
+                    (traverse_log.write(str(get_state_name(curr_game_state.parent)) + "," + str(curr_game_state.d) + "," + str(val) + "," + formatOutput(
+                        prev_alpha) + "," + formatOutput(prev_beta) + '\n'))
                     break
-                (traverse_log.write(str(getPos(gameState.parent)) + "," + str(gameState.d) + "," + str(val) + "," + formatOutput(
-                    gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
-    if gameState.d % 2 == 1:
-        return min(gameState.scores, key=gameState.scores.get), gameState.scores[
-            min(gameState.scores, key=gameState.scores.get)]
+                (traverse_log.write(str(get_state_name(curr_game_state.parent)) + "," + str(curr_game_state.d) + "," + str(val) + "," + formatOutput(
+                    curr_game_state.alpha) + "," + formatOutput(curr_game_state.beta) + '\n'))
+    if curr_game_state.d % 2 == 1:
+        return min(curr_game_state.scores, key=curr_game_state.scores.get), curr_game_state.scores[
+            min(curr_game_state.scores, key=curr_game_state.scores.get)]
     else:
-        return max(gameState.scores, key=gameState.scores.get), gameState.scores[
-            max(gameState.scores, key=gameState.scores.get)]
+        return max(curr_game_state.scores, key=curr_game_state.scores.get), curr_game_state.scores[
+            max(curr_game_state.scores, key=curr_game_state.scores.get)]
+
 
 
 def get_v(a_board):
@@ -968,12 +974,12 @@ def main():
         write.close()
 
     if alg_choice == 3:
-        gs = GameState(inputState, play, 0, "root")
+        gs = AB_Game_State(inputState, play, 0, "root")
         # print pointsMatrix
         # traverse_log = open('traverse_log.txt', 'w')
         traverse_log.write('Node,Depth,Value,Alpha,Beta\n')
         traverse_log.write("root," + str(0) + ",-Infinity" + "," + formatOutput(gs.alpha) + "," + formatOutput(gs.beta) + '\n')
-        answer, value = alphaBeta(gs, d)
+        answer, value = final_alpha_beta(gs, d)
         # print answer
         traverse_log.close()
 
@@ -986,7 +992,7 @@ def main():
         item = lines[-1].rstrip()
         write.write(item)
         write.close()
-        final = getOutput(answer, gs)
+        final = get_next_board(answer, gs)
         write_next_state_ab(final)
         # print final
 
