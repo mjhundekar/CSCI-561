@@ -10,8 +10,19 @@ alg_choice = ''
 cut_off_p1 = 0
 cut_off_p2 = 0
 
+answer = 0
+pointsMatrix = [[] for x in range(5)]
+inputState = []
+inputCounter = 0
+playerScore = 0
+opponentScore = 0
+score = {}
+play = ''
+d = 0
+
 logfile = open('log.txt', 'w')
 traverse_log = open('traverse_log.txt', 'w')
+
 
 
 class Board:
@@ -31,13 +42,15 @@ class Board:
         self.brd_depth = depth
         # self.cut_off = cut_off
         self.alpha = decimal.Decimal('-Infinity')  # max
-        self.beta = decimal.Decimal('Infinity')    # min
+        self.beta = decimal.Decimal('Infinity')  # min
         if self.brd_depth % 2 == 1:
             self.val_min_max = decimal.Decimal('Infinity')  # max
         elif self.brd_depth == 0:
             self.val_min_max = decimal.Decimal('-Infinity')  # max
         else:
             self.val_min_max = decimal.Decimal('Infinity')  # max
+
+        self.v = decimal.Decimal('-Infinity')
 
     def __str__(self):
         # TODO
@@ -188,19 +201,18 @@ class Board:
         all_moves_desc = sorted(all_moves, key=get_curr_p2_eval, reverse=True)
         next_brd = all_moves_desc[0]
 
-        print '\n\nFinal Move'
-        print next_brd.brd_to_string()
-        print next_brd.brd_p1
-        print 'P1 INIT,  P2 INIT', next_brd.brd_curr_p1_eval, next_brd.brd_curr_p2_eval
+        # print '\n\nFinal Move'
+        # print next_brd.brd_to_string()
+        # print next_brd.brd_p1
+        # print 'P1 INIT,  P2 INIT', next_brd.brd_curr_p1_eval, next_brd.brd_curr_p2_eval
         return next_brd
 
     def brd_min_max(self, depth, cut_off, player):
         logfile.write('\nInside MIN_MAX\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
         logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
         traverse_log.write(self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
-
         next_move = self.max_move(depth, cut_off, player)
-        print next_move.brd_to_string()
+        # print next_move.brd_to_string()
         return next_move
 
     def max_move(self, depth, cut_off, player):
@@ -249,11 +261,13 @@ class Board:
                             logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) + ' ' + str(
                                 raid_node.brd_curr_p2_eval))
                         if depth % 2 == 1 and not depth == cut_off:
-                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
+                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
+                                next_move.val_min_max) + '\n')
                         # Call the min move on next move
                         next_min_move = next_move.min_move(depth, cut_off, player)
                         if depth == cut_off:
-                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
+                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
+                                next_move.val_min_max) + '\n')
 
                         if next_min_move.val_min_max > temp_max:
                             temp_max = next_min_move.val_min_max
@@ -261,9 +275,11 @@ class Board:
                             self.val_min_max = temp_max
 
                         if depth > 1:
-                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
+                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
+                                next_move.val_min_max) + '\n')
 
-                        traverse_log.write(self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
+                        traverse_log.write(
+                            self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
                         all_moves.append(next_move)
 
             all_moves = sorted(all_moves, key=get_val_min_max, reverse=True)
@@ -271,7 +287,8 @@ class Board:
 
         logfile.write('\n\nBEST MAX_MOVE at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
         logfile.write(
-            '\nCheck Here Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(best_move.brd_curr_p2_eval))
+            '\nCheck Here Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(
+                best_move.brd_curr_p2_eval))
 
         return best_move
 
@@ -279,7 +296,7 @@ class Board:
         if self.end_game() or depth == cut_off:
             logfile.write('\nInside cut off MIN_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
             logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
-            self.val_min_max = -self.brd_curr_p1_eval   # Important Fix
+            self.val_min_max = -self.brd_curr_p1_eval  # Important Fix
             return self
         else:
             # generate all moves
@@ -319,8 +336,10 @@ class Board:
                             next_move.val_min_max = temp_min
                             self.val_min_max = temp_min
                         if depth > 1:
-                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(next_move.val_min_max) + '\n')
-                        traverse_log.write(self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
+                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
+                                next_move.val_min_max) + '\n')
+                        traverse_log.write(
+                            self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
                         all_moves.append(next_move)
 
             all_moves = sorted(all_moves, key=get_val_min_max, reverse=False)
@@ -329,6 +348,232 @@ class Board:
         logfile.write('\n\nBEST MIN_MOVE at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
         logfile.write(
             '\n Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(best_move.brd_curr_p2_eval))
+        return best_move
+
+    #######################################################################################################
+
+    def brd_alpha_beta(self, depth, cut_off, player):
+        logfile.write('\nInside MIN_MAX\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+        logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+        (traverse_log.write(self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) +
+                            ',' + str(self.val_min_max) + ',' + str(self.alpha) +
+                            ',' + str(self.beta) + '\n'))
+        next_move = self.alpha_max_move(depth, cut_off, player)
+        # print next_move.brd_to_string()
+        return next_move
+
+    def alpha_max_move(self, depth, cut_off, player):
+        # check if game has ended or if we have reached the cut off depth
+        if self.end_game() or depth == cut_off:
+            logfile.write('\nInside cut off alpha_max_move\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+
+            self.val_min_max = self.brd_curr_p1_eval
+            self.v = self.brd_curr_p1_eval
+            self.alpha = self.brd_curr_p1_eval
+            # self.beta = self.brd_curr_p1_eval
+            (logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval) +
+                           ' ' + str(self.alpha) + ' ' + str(self.beta)))
+
+            return self
+        else:
+            depth += 1
+            temp_max = decimal.Decimal('-Infinity')
+            all_moves = []
+
+            # generate all moves for self
+            logfile.write('\nGenerating all moves alpha_max_move: ' + str(self.brd_p1) + '\n Depth : ' + str(
+                depth) + '\n' + self.brd_to_string())
+            (logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval) +
+                           ' ' + str(self.alpha) + ' ' + str(self.beta)))
+
+            for i in range(5):
+                for j in range(5):
+                    if self.brd_state[i][j] == '*':
+                        # next move either be sneak or raid
+                        if self.brd_check_sneak(i, j):
+                            sneak_node = self.brd_sneak(i, j, self.brd_depth + 1)
+                            next_move = sneak_node
+                            t = depth
+
+                            logfile.write(
+                                '\n\nNext SNEAK alpha_max_move \n Depth : ' + str(t) + ' i, j: ' + str(i) + ' ' + str(
+                                    j) + '\n' + sneak_node.brd_to_string())
+                            logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
+                            logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) + ' ' + str(
+                                sneak_node.brd_curr_p2_eval))
+
+                        else:  # sneak not possible then its raid
+                            raid_node = self.brd_raid(i, j, depth)
+                            next_move = raid_node
+                            t = depth
+
+                            logfile.write(
+                                '\n\nNext RAID alpha_max_move \n Depth :  ' + str(t) + ' i, j: ' + str(i) + ' ' + str(
+                                    j) + '\n' + raid_node.brd_to_string())
+                            logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
+                            logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) + ' ' + str(
+                                raid_node.brd_curr_p2_eval))
+                        next_move.alpha = self.alpha
+                        next_move.beta = self.beta
+                        logfile.write('\nBefore min Alpha : Beta: ' + str(next_move.alpha) + ' ' + str(next_move.beta))
+                        next_beta_min_move = next_move.beta_min_move(depth, cut_off, player)
+                        next_move.alpha = next_beta_min_move.beta
+                        next_move.v = next_move.alpha
+                        all_moves.append(next_move)
+                        logfile.write('\nAfter min Alpha : Beta: ' + str(next_move.alpha) + ' ' + str(next_move.beta))
+
+                        if next_beta_min_move.v > next_move.v:
+                            # temp_max = next_min_move.val_min_max
+                            next_move.v = next_beta_min_move.v
+                            self.v = next_move.v
+
+                        if next_move.beta <= next_move.alpha:
+                            logfile.write(
+                                '\n\nNext PRUNE alpha_max_move \n Depth :  ' + str(t) + ' i, j: ' + str(i) + ' ' + str(
+                                    j) + '\n' + next_move.brd_to_string())
+                            logfile.write('\nAlpha : Beta: ' + str(next_move.alpha) + ' ' + str(next_move.beta))
+                            all_moves = sorted(all_moves, key=get_v, reverse=False)
+                            best_move = all_moves[0]
+                            return best_move
+                        else:
+
+                            if depth % 2 == 1 and not depth == cut_off:
+                                (traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' +
+                                                    str(next_move.v) + ',' + str(next_move.alpha) + ',' +
+                                                    str(next_move.beta) + '\n'))
+                            # Call the min move on next move
+
+                            if depth == cut_off:
+                                (traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' +
+                                                    str(next_move.v) + ',' + str(next_move.alpha) + ',' +
+                                                    str(next_move.beta) + '\n'))
+
+                                # if next_beta_min_move.v > next_move.alpha:
+                                #     temp_max = next_beta_min_move.v
+                                #     next_move.alpha = temp_max
+                                # best_move = next_move
+                                # all_moves.append(next_move)
+                                # self.val_min_max = temp_max
+
+                                if depth > 1:
+                                    (traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) +
+                                                        ',' + str(next_move.v) + ',' + str(next_move.alpha) +
+                                                        ',' + str(next_move.beta) + '\n'))
+
+                                (traverse_log.write(self.brd_name + ',' + str(self.brd_depth) +
+                                                    ',' + str(self.v) + ',' + str(self.alpha) +
+                                                    ',' + str(self.beta) + '\n'))
+
+                                # if next_move.alpha >= next_move.beta:
+                                #     all_moves = sorted(all_moves, key=get_v, reverse=False)
+                                #     best_move = all_moves[0]
+                                #     return best_move
+
+            all_moves = sorted(all_moves, key=get_v, reverse=True)
+            best_move = all_moves[0]
+
+        # logfile.write('\n\nBEST alpha_max_move at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
+        # logfile.write(
+        #     '\nCheck Here Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(best_move.brd_curr_p2_eval))
+        # self.beta = best_move.alpha
+        return best_move
+
+    def beta_min_move(self, depth, cut_off, player):
+        if self.end_game() or depth == cut_off:
+            logfile.write('\nInside cut off beta_min_move\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+
+            self.val_min_max = -self.brd_curr_p1_eval  # Important Fix
+            self.v = -self.brd_curr_p1_eval
+            self.beta = -self.brd_curr_p1_eval
+            # self.alpha = -self.brd_curr_p1_eval
+            (logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval)) +
+             ' ' + str(self.alpha) + ' ' + str(self.beta))
+            return self
+        else:
+            # generate all moves
+            first_child = True
+            depth += 1
+            temp_min = decimal.Decimal('Infinity')
+            all_moves = []
+
+            logfile.write('\nGenerating all moves beta_min_move \n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+            (logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval) +
+                           ' ' + str(self.alpha) + ' ' + str(self.beta)))
+
+            for i in range(5):
+                for j in range(5):
+                    if self.brd_state[i][j] == '*':
+                        if self.brd_check_sneak(i, j):
+                            sneak_node = self.brd_sneak(i, j, depth)
+                            next_move = sneak_node
+                            t = depth
+
+                            (logfile.write('\n\nNext SNEAK beta_min_move \n Depth : ' + str(t) + ' i, j: ' +
+                                           str(i) + ' ' + str(j) + '\n' + sneak_node.brd_to_string()))
+                            logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
+                            (logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) +
+                                           ' ' + str(sneak_node.brd_curr_p2_eval)))
+                        else:  # sneak not possible then its raid
+                            raid_node = self.brd_raid(i, j, depth)
+                            next_move = raid_node
+                            t = depth
+                            (logfile.write('\n\nNext RAID beta_min_move \n Depth :  ' + str(t) + ' i, j: ' +
+                                           str(i) + ' ' + str(j) + '\n' + raid_node.brd_to_string()))
+                            logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
+                            (logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) +
+                                           ' ' + str(raid_node.brd_curr_p2_eval)))
+                        # logfile.write('\nAlpha : Beta: ' + next_move.alpha + ' ' + next_move.beta)
+                        next_move.alpha = self.alpha
+                        next_move.beta = self.beta
+                        logfile.write(
+                            '\nBefore alpha_max_move Alpha : Beta: ' + str(next_move.alpha) + ' ' + str(next_move.beta))
+                        # if next_move.alpha == decimal.Decimal('-Infinity'):
+                        #     first_child = False
+                        next_alpha_max_move = next_move.alpha_max_move(depth, cut_off, player)
+                        next_move.beta = next_alpha_max_move.alpha
+                        # next_move.k = next_move.beta
+                        all_moves.append(next_move)
+                        logfile.write(
+                            '\nAfter alpha_max_move Alpha : Beta: ' + str(next_move.alpha) + ' ' + str(next_move.beta))
+
+                        if next_alpha_max_move.v < next_move.v:
+                            next_move.v = next_alpha_max_move.v
+                            self.v = next_move.v
+
+                        if next_move.beta <= next_move.alpha:  # prune
+                            logfile.write(
+                                '\n\nNext PRUNE alpha_max_move \n Depth :  ' + str(t) + ' i, j: ' + str(i) + ' ' + str(
+                                    j) + '\n' + next_move.brd_to_string())
+                            logfile.write('\nAlpha : Beta: ' + str(next_move.alpha) + ' ' + str(next_move.beta))
+                            all_moves = sorted(all_moves, key=get_v, reverse=False)
+                            best_move = all_moves[0]
+                            return best_move
+                        else:  # process current node
+                            # temp_min = next_alpha_max_move.v
+                            # # next_move.beta = next_alpha_max_move.alpha
+                            # next_move.v = temp_min
+                            best_move = next_move
+                            # all_moves.append(next_move)
+                            if depth > 1:
+                                (traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' +
+                                                    str(next_move.v) + ',' + str(next_move.alpha) + ',' +
+                                                    str(next_move.beta) + '\n'))
+                            (traverse_log.write(self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.v) +
+                                                ',' + str(next_move.alpha) + ',' +
+                                                str(next_move.beta) + '\n'))
+                            # all_moves.append(next_move)
+
+                            # all_moves = sorted(all_moves, key=get_v, reverse=False)
+                            # best_move = all_moves[0]
+                            # return best_move
+
+            all_moves = sorted(all_moves, key=get_v, reverse=False)
+            best_move = all_moves[0]
+
+        logfile.write('\n\nBEST beta_min_move at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
+        logfile.write(
+            '\n Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(best_move.brd_curr_p2_eval))
+        self.alpha = best_move.beta
         return best_move
 
     def brd_check_sneak(self, i, j):
@@ -346,6 +591,208 @@ class Board:
             if self.brd_state[i][j - 1] == self.brd_p1:
                 return False
         return True
+
+
+###################################################################################################################
+
+
+class GameState:
+    def __init__(self, inputState, play, d, parent, scores={}, alpha=-9999, beta=9999):
+        self.parent = parent
+        self.inputState = list(inputState)
+        self.play = play
+        self.scores = scores
+        self.d = d
+        self.alpha = alpha
+        self.beta = beta
+        self.value = -9999
+        if self.play == "X":
+            self.opponent = "O"
+        else:
+            self.opponent = "X"
+
+
+def checkMoveType(inputCounter, gameState):
+    row = inputCounter / 5
+    column = inputCounter % 5
+    if row + 1 < 5 and gameState.inputState[row + 1][column] == gameState.play:
+        return "R"
+    elif row - 1 >= 0 and gameState.inputState[row - 1][column] == gameState.play:
+        return "R"
+    elif column - 1 >= 0 and gameState.inputState[row][column - 1] == gameState.play:
+        return "R"
+    elif column + 1 < 5 and gameState.inputState[row][column + 1] == gameState.play:
+        return "R"
+    else:
+        return "S"
+
+
+def calculateRaidScore(inputCounter, opponentScore, gameState):
+    global pointsMatrix
+    row = inputCounter / 5
+    column = inputCounter % 5
+    raidScore = int(pointsMatrix[row][column])
+    if row + 1 < 5 and gameState.inputState[row + 1][column] == gameState.opponent:
+        raidScore += int(pointsMatrix[row + 1][column])
+        opponentScore -= int(pointsMatrix[row + 1][column])
+    if row - 1 >= 0 and gameState.inputState[row - 1][column] == gameState.opponent:
+        raidScore += int(pointsMatrix[row - 1][column])
+        opponentScore -= int(pointsMatrix[row - 1][column])
+    if column - 1 >= 0 and gameState.inputState[row][column - 1] == gameState.opponent:
+        raidScore += int(pointsMatrix[row][column - 1])
+        opponentScore -= int(pointsMatrix[row][column - 1])
+    if column + 1 < 5 and gameState.inputState[row][column + 1] == gameState.opponent:
+        raidScore += int(pointsMatrix[row][column + 1])
+        opponentScore -= int(pointsMatrix[row][column + 1])
+    if (play == gameState.play):
+        return (raidScore + playScore - opponentScore)
+    else:
+        return -1 * (raidScore + playScore - opponentScore)
+
+
+def getPos(x):
+    if x == "root":
+        return x
+    if x % 5 == 0:
+        return "A" + str((x / 5) + 1)
+    elif x % 5 == 1:
+        return "B" + str((x / 5) + 1)
+    elif x % 5 == 2:
+        return "C" + str((x / 5) + 1)
+    elif x % 5 == 3:
+        return "D" + str((x / 5) + 1)
+    elif x % 5 == 4:
+        return "E" + str((x / 5) + 1)
+
+
+def formatOutput(x):
+    if x == -9999:
+        return "-Infinity"
+    elif x == 9999:
+        return "Infinity"
+    else:
+        return str(x)
+
+
+def initialScores(gameState):
+    global playScore
+    global opponentScore
+    global pointsMatrix
+    playScore = 0
+    opponentScore = 0
+    for y in range(25):
+        if gameState.inputState[y / 5][y % 5] == gameState.play:
+            playScore += int(pointsMatrix[y / 5][y % 5])
+        elif gameState.inputState[y / 5][y % 5] == gameState.opponent:
+            opponentScore += int(pointsMatrix[y / 5][y % 5])
+
+
+def getOutput(position, gameState):
+    inputState = list(gameState.inputState)
+    inputState[position / 5] = inputState[position / 5][:position % 5] + gameState.play + inputState[position / 5][
+                                                                                          position % 5 + 1:]
+    if position % 5 - 1 >= 0 and inputState[position / 5][(position % 5) - 1] == gameState.opponent:
+        inputState[position / 5] = inputState[position / 5][:position % 5 - 1] + gameState.play + inputState[
+                                                                                                      position / 5][
+                                                                                                  position % 5:]
+    if position % 5 + 1 < 5 and inputState[position / 5][position % 5 + 1] == gameState.opponent:
+        inputState[position / 5] = inputState[position / 5][:position % 5 + 1] + gameState.play + inputState[
+                                                                                                      position / 5][
+                                                                                                  position % 5 + 2:]
+    if position / 5 - 1 >= 0 and inputState[position / 5 - 1][position % 5] == gameState.opponent:
+        inputState[position / 5 - 1] = inputState[position / 5 - 1][:position % 5] + gameState.play + inputState[
+                                                                                                          position / 5 - 1][
+                                                                                                      position % 5 + 1:]
+    if position / 5 + 1 < 5 and inputState[position / 5 + 1][position % 5] == gameState.opponent:
+        inputState[position / 5 + 1] = inputState[position / 5 + 1][:position % 5] + gameState.play + inputState[
+                                                                                                          position / 5 + 1][
+                                                                                                      position % 5 + 1:]
+    return inputState
+
+
+def alphaBeta(gameState, cutoffdepth):
+    global pointsMatrix
+    if gameState.d < cutoffdepth - 1:
+        for x in range(25):
+            # trial check
+            if gameState.inputState[x / 5][x % 5] == "*":
+                move = checkMoveType(x, gameState)
+                input1 = list(gameState.inputState)
+                if move == "S":
+                    input1[x / 5] = gameState.inputState[x / 5][:x % 5] + gameState.play + gameState.inputState[x / 5][
+                                                                                           x % 5 + 1:]
+                else:
+                    input1 = getOutput(x, gameState)
+                if gameState.d % 2 == 1:
+                    (traverse_log.write(str(getPos(x)) + "," + str(gameState.d + 1) + ",-Infinity" + "," +
+                                          formatOutput(gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
+                else:
+                    (traverse_log.write(str(getPos(x)) + "," + str(gameState.d + 1) + ",Infinity" + "," + formatOutput(
+                        gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
+                newGamestate = GameState(input1, gameState.opponent, gameState.d + 1, x, {}, gameState.alpha,
+                                         gameState.beta)
+                answer, gameState.scores[x] = alphaBeta(newGamestate, cutoffdepth)
+                if gameState.alpha >= gameState.beta:
+                    break
+                if gameState.d % 2 == 1:
+                    gameState.value = gameState.scores[min(gameState.scores, key=gameState.scores.get)]
+                    gameState.beta = gameState.value
+                    (traverse_log.write(str(getPos(gameState.parent)) + "," + str(gameState.d) + "," + str(
+                        gameState.value) + "," + formatOutput(gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
+
+                else:
+                    gameState.value = gameState.scores[max(gameState.scores, key=gameState.scores.get)]
+                    gameState.alpha = gameState.value
+                    (traverse_log.write(str(getPos(gameState.parent)) + "," + str(gameState.d) + "," + str(
+                        gameState.value) + "," + formatOutput(gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
+
+    elif gameState.d == cutoffdepth - 1:
+        initialScores(gameState)
+        prevAlpha = "-Infinity"
+        prevBeta = "Infinity"
+        for x in range(25):
+            if gameState.inputState[x / 5][x % 5] == "*":
+                move = checkMoveType(x, gameState)
+                if move == "S":
+                    if play == gameState.play:
+                        gameState.scores[x] = (int(pointsMatrix[x / 5][x % 5]) + (playScore - opponentScore))
+                    else:
+                        gameState.scores[x] = -1 * (int(pointsMatrix[x / 5][x % 5]) + (playScore - opponentScore))
+                else:
+                    gameState.scores[x] = (calculateRaidScore(x, opponentScore, gameState))
+                (traverse_log.write(str(getPos(x)) + "," + str(gameState.d + 1) + "," + str(gameState.scores[x]) + "," + formatOutput(
+                    gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
+                prevAlpha = gameState.alpha
+                prevBeta = gameState.beta
+                if gameState.d % 2 == 1:
+                    val = gameState.scores[min(gameState.scores, key=gameState.scores.get)]
+                    if gameState.beta > val:
+                        gameState.beta = val
+                else:
+                    val = gameState.scores[max(gameState.scores, key=gameState.scores.get)]
+                    if gameState.alpha < val:
+                        gameState.alpha = val
+                gameState.value = val
+                if gameState.alpha >= gameState.beta:
+                    (traverse_log.write(str(getPos(gameState.parent)) + "," + str(gameState.d) + "," + str(val) + "," + formatOutput(
+                        prevAlpha) + "," + formatOutput(prevBeta) + '\n'))
+                    break
+                (traverse_log.write(str(getPos(gameState.parent)) + "," + str(gameState.d) + "," + str(val) + "," + formatOutput(
+                    gameState.alpha) + "," + formatOutput(gameState.beta) + '\n'))
+    if gameState.d % 2 == 1:
+        return min(gameState.scores, key=gameState.scores.get), gameState.scores[
+            min(gameState.scores, key=gameState.scores.get)]
+    else:
+        return max(gameState.scores, key=gameState.scores.get), gameState.scores[
+            max(gameState.scores, key=gameState.scores.get)]
+
+
+def get_v(a_board):
+    return a_board.v
+
+
+def get_beta(a_board):
+    return a_board.alpha
 
 
 def get_val_min_max(a_board):
@@ -372,41 +819,85 @@ def process_input(fn):
     global cut_off_p1
     # global cut_off_p2
 
+    global answer
+    global pointsMatrix
+    global inputState
+    global inputCounter
+    global playerScore
+    global opponentScore
+    global score
+    global inputState
+    global play
+    global d
+    global opponent
+    global algorithm
+
     for line in file_handle:
         if line_counter == 0:
-            alg_choice = int(line.strip('\n'))
+            alg_choice = int(line.strip('\n\r'))
             line_counter += 1
+            algorithm = int(line.strip())
         elif line_counter == 1:
-            sym_choice = line.strip('\n')
+            sym_choice = line.strip('\n\r')
+            play = line.strip()
             if sym_choice == 'X':
                 opp_choice = 'O'
+                opponent = "O"
             else:
                 opp_choice = 'X'
+                opponent = "X"
             line_counter += 1
         elif line_counter == 2:
-            cut_off_p1 = int(line.strip('\n'))
+            cut_off_p1 = int(line.strip('\n\r'))
+            d = int(line.strip())
             line_counter += 1
         elif line_counter > 2 and line_counter < 8:
-            board_line = map(int, line.strip('\n').split())
+            board_line = map(int, line.strip('\n\r').split())
             board_value.append(board_line)
+            pointsMatrix[line_counter - 3] = line.split()
             # i= chr(ord(i) + 1)
             line_counter += 1
         else:
-            curr_line = list(line.strip('\n'))
+            curr_line = list(line.strip('\n\r'))
             init_board.append(curr_line)
+            inputState.append(line)
             # j = chr(ord(j) + 1)
             line_counter += 1
 
 
 # oop version not needed
 def write_next_state(a_next_state):
-    f = open("output.txt", "w")
+    print a_next_state
+    f = open("next_state.txt", "w")
     s = ""
     for i in range(5):
-        s += "".join(map(str, a_next_state[i]))
+        s = "".join(map(str, a_next_state[i]))
+        # if i < 4:
+        #     s += "\n"
+        s = s.strip('\n\r')
         if i < 4:
             s += "\n"
-    f.write(s)
+        # s += '\n'
+        f.write(s)
+    f.close()
+
+    # f = open("next_state.txt", "r")
+    # lines = f.readlines()
+    # f.close()
+    # write = open('next_state.txt', 'w')
+    # write.writelines([item for item in lines[:-1]])
+    # write.close()
+
+
+def write_next_state_ab(a_next_state):
+    print a_next_state
+    f = open("next_state.txt", "w")
+    s = ""
+    for i in range(5):
+        s = "".join(map(str, a_next_state[i]))
+        # if i < 4:
+        #     s += "\n"
+        f.write(s)
     f.close()
 
 
@@ -424,8 +915,12 @@ def main():
     process_input(file_name)
     global cut_off_p1
     global alg_choice
+    global inputState
+    global play
+    global d
 
-    # process_input("input4.txt")
+
+    # process_input("input5.txt")
     # print "Algo choice", alg_choice
     # print "Symbol Choice", sym_choice
     # print "Cutoff", cut_off_p1
@@ -444,7 +939,7 @@ def main():
     if alg_choice == 1:
         next_board = input_board.brd_greedy_best_first_search()
         write_next_state(next_board.brd_state)
-        print '\n\n\nMAIN NEXT BOARD'
+        # print '\n\n\nMAIN NEXT BOARD'
         # print next_board.alpha
         # print next_board.beta
         # res = next_board.brd_to_string()
@@ -454,10 +949,46 @@ def main():
         # test_file.write(res)
         # test_file.write(res)
     if alg_choice == 2:
-        print cut_off_p1
-        traverse_log.write('My Log\nNode,Depth,Value\n')
+        # print cut_off_p1
+        # traverse_log = open('traverse_log.txt', 'w')
+        traverse_log.write('Node,Depth,Value\n')
         next_board = input_board.brd_min_max(0, cut_off_p1, input_board.brd_p1)
         write_next_state(next_board.brd_state)
+        traverse_log.close()
+
+        read_traverse_log = open('traverse_log.txt', 'r')
+        lines = read_traverse_log.readlines()
+        read_traverse_log.close()
+
+        write = open('traverse_log.txt', 'w')
+        # write = open('traverse_log.txt', 'w')
+        write.writelines([item for item in lines[:-1]])
+        item = lines[-1].rstrip()
+        write.write(item)
+        write.close()
+
+    if alg_choice == 3:
+        gs = GameState(inputState, play, 0, "root")
+        # print pointsMatrix
+        # traverse_log = open('traverse_log.txt', 'w')
+        traverse_log.write('Node,Depth,Value,Alpha,Beta\n')
+        traverse_log.write("root," + str(0) + ",-Infinity" + "," + formatOutput(gs.alpha) + "," + formatOutput(gs.beta) + '\n')
+        answer, value = alphaBeta(gs, d)
+        # print answer
+        traverse_log.close()
+
+        read_traverse_log = open('traverse_log.txt', 'r')
+        lines = read_traverse_log.readlines()
+        read_traverse_log.close()
+
+        write = open('traverse_log.txt', 'w')
+        write.writelines([item for item in lines[:-1]])
+        item = lines[-1].rstrip()
+        write.write(item)
+        write.close()
+        final = getOutput(answer, gs)
+        write_next_state_ab(final)
+        # print final
 
 
 if __name__ == '__main__':
