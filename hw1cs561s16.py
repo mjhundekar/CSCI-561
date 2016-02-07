@@ -9,6 +9,8 @@ opp_choice = ''
 alg_choice = ''
 cut_off_p1 = 0
 cut_off_p2 = 0
+p1_alg_choice = -1
+p2_alg_choice = -1
 game_flag = False
 answer = 0
 pointsMatrix = [[] for x in range(5)]
@@ -22,18 +24,18 @@ d = 0
 
 logfile = open('log.txt', 'w')
 traverse_log = open('traverse_log.txt', 'w')
-
+trace_state = open("trace_state.txt", "w")
 
 
 class Board:
-    def __init__(self, curr_state, player, opponent, move, i, j, depth, next_p1_eval, next_p2_eval):
+    def __init__(self, curr_state, player, opp, move, i, j, depth, next_p1_eval, next_p2_eval):
         """
 
         :rtype: Board
         """
         self.brd_state = copy.deepcopy(curr_state)
         self.brd_p1 = player
-        self.brd_p2 = opponent
+        self.brd_p2 = opp
         self.brd_raid_flag = False
         self.brd_move = move
         self.brd_curr_p1_eval, self.brd_curr_p2_eval = \
@@ -43,9 +45,10 @@ class Board:
         # self.cut_off = cut_off
         self.alpha = decimal.Decimal('-Infinity')  # max
         self.beta = decimal.Decimal('Infinity')  # min
+
         if self.brd_depth % 2 == 1:
             self.val_min_max = decimal.Decimal('Infinity')  # max
-        elif self.brd_depth == 0:
+        if self.brd_depth == 0:
             self.val_min_max = decimal.Decimal('-Infinity')  # max
         else:
             self.val_min_max = decimal.Decimal('Infinity')  # max
@@ -73,6 +76,7 @@ class Board:
         init_p1_eval = 0
         init_p2_eval = 0
         init_b_eval = 0
+        global board_value
 
         if move == 'i':  # Root node need to evaluate from scratch
             for i in range(5):
@@ -178,34 +182,38 @@ class Board:
 
     def brd_greedy_best_first_search(self):
         all_moves = []
-        for i in range(5):
-            for j in range(5):
-                if self.brd_state[i][j] == '*':
-                    if self.brd_check_sneak(i, j):
-                        sneak_node = self.brd_sneak(i, j, 1)
-                        logfile.write(
-                            '\n\nNext SNEAK i, j : ' + str(i) + ' ' + str(j) + '\n' + sneak_node.brd_to_string())
-                        logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
-                        logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) + ' ' + str(
-                            sneak_node.brd_curr_p2_eval))
-                        all_moves.append(sneak_node)
-                    else:  # sneak not possible then its raid
-                        raid_node = self.brd_raid(i, j, 1)
-                        logfile.write(
-                            '\n\nNext Raid i, j : ' + str(i) + ' ' + str(j) + '\n' + raid_node.brd_to_string())
-                        logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
-                        logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) + ' ' + str(
-                            raid_node.brd_curr_p2_eval))
-                        all_moves.append(raid_node)
+        if  common_end_game(self.brd_state):
+            print "Game has ended"
+            return
+        else:
+            for i in range(5):
+                for j in range(5):
+                    if self.brd_state[i][j] == '*':
+                        if self.brd_check_sneak(i, j):
+                            sneak_node = self.brd_sneak(i, j, 1)
+                            # logfile.write(
+                            #     '\n\nNext SNEAK i, j : ' + str(i) + ' ' + str(j) + '\n' + sneak_node.brd_to_string())
+                            # logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
+                            # logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) + ' ' + str(
+                            #     sneak_node.brd_curr_p2_eval))
+                            all_moves.append(sneak_node)
+                        else:  # sneak not possible then its raid
+                            raid_node = self.brd_raid(i, j, 1)
+                            # logfile.write(
+                            #     '\n\nNext Raid i, j : ' + str(i) + ' ' + str(j) + '\n' + raid_node.brd_to_string())
+                            # logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
+                            # logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) + ' ' + str(
+                            #     raid_node.brd_curr_p2_eval))
+                            all_moves.append(raid_node)
 
-        all_moves_desc = sorted(all_moves, key=get_curr_p2_eval, reverse=True)
-        next_brd = all_moves_desc[0]
+            all_moves_desc = sorted(all_moves, key=get_curr_p2_eval, reverse=True)
+            next_brd = all_moves_desc[0]
 
-        # print '\n\nFinal Move'
-        # print next_brd.brd_to_string()
-        # print next_brd.brd_p1
-        # print 'P1 INIT,  P2 INIT', next_brd.brd_curr_p1_eval, next_brd.brd_curr_p2_eval
-        return next_brd
+            # print '\n\nFinal Move'
+            # print next_brd.brd_to_string()
+            # print next_brd.brd_p1
+            # print 'P1 INIT,  P2 INIT', next_brd.brd_curr_p1_eval, next_brd.brd_curr_p2_eval
+            return next_brd
 
     def brd_min_max(self, depth, cut_off, player):
         logfile.write('\nInside MIN_MAX\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
@@ -217,7 +225,11 @@ class Board:
 
     def max_move(self, depth, cut_off, player):
         # check if game has ended or if we have reached the cut off depth
-        if self.end_game() or depth == cut_off:
+        # if common_end_game(self.brd_state):
+        #     print "Game has ended"
+        #     return
+        # else:
+        if depth == cut_off:
             logfile.write('\nInside cut off MAX_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
             logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
             self.val_min_max = self.brd_curr_p1_eval
@@ -293,7 +305,11 @@ class Board:
         return best_move
 
     def min_move(self, depth, cut_off, player):
-        if self.end_game() or depth == cut_off:
+        # if  common_end_game(self.brd_state):
+        #     print "Game has ended"
+        #     return
+        # else:
+        if depth == cut_off:
             logfile.write('\nInside cut off MIN_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
             logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
             self.val_min_max = -self.brd_curr_p1_eval  # Important Fix
@@ -648,7 +664,7 @@ def compute_raid_score(icounter, opp_score, curr_game_state):
     if column + 1 < 5 and curr_game_state.inputState[row][column + 1] == curr_game_state.opponent:
         raid_score += int(pointsMatrix[row][column + 1])
         opp_score -= int(pointsMatrix[row][column + 1])
-        
+
     if play == curr_game_state.play:
         return raid_score + playScore - opp_score
     else:
@@ -713,6 +729,13 @@ def get_next_board(position, gameState):
                                                                                                           position / 5 + 1][
                                                                                                       position % 5 + 1:]
     return inputState
+
+
+def common_end_game(input_board):
+    for i in range(25):
+        if input_board[i / 5][i % 5] == '*':
+            return False
+    return True
 
 
 def final_alpha_beta(curr_game_state, cut_off):
@@ -823,7 +846,7 @@ def process_input(fn):
     global opp_choice
     global alg_choice
     global cut_off_p1
-    # global cut_off_p2
+    global cut_off_p2
 
     global answer
     global pointsMatrix
@@ -837,44 +860,105 @@ def process_input(fn):
     global d
     global opponent
     global algorithm
+    global game_flag
+    global p1_alg_choice
+    global p2_alg_choice
 
     for line in file_handle:
         if line_counter == 0:
             alg_choice = int(line.strip('\n\r'))
             line_counter += 1
-            algorithm = int(line.strip())
-        elif line_counter == 1:
-            sym_choice = line.strip('\n\r')
-            play = line.strip()
-            if sym_choice == 'X':
-                opp_choice = 'O'
-                opponent = "O"
-            else:
-                opp_choice = 'X'
-                opponent = "X"
-            line_counter += 1
-        elif line_counter == 2:
-            cut_off_p1 = int(line.strip('\n\r'))
-            d = int(line.strip())
-            line_counter += 1
-        elif line_counter > 2 and line_counter < 8:
-            board_line = map(int, line.strip('\n\r').split())
-            board_value.append(board_line)
-            pointsMatrix[line_counter - 3] = line.split()
-            # i= chr(ord(i) + 1)
-            line_counter += 1
+            if alg_choice == 4:
+                game_flag = True
+            elif alg_choice == 3: # Game mode
+                alg_choice = alg_choice
+            continue
+        if game_flag:
+            if line_counter == 1:   # P1
+                sym_choice = line.strip('\n\r')
+                play = sym_choice
+                if sym_choice == 'X':
+                    opp_choice = 'O'
+                    opponent = 'O'
+                else:
+                    opp_choice = 'X'
+                    opponent = 'X'
+                line_counter += 1
+                continue
+            if line_counter == 2:   # P1 Algorithm choice
+                p1_alg_choice = int(line.strip('\n\r'))
+                if p1_alg_choice == 3:
+                    algorithm = int(line.strip())
+                line_counter += 1
+                continue
+            if line_counter == 3:    # P1 cutoff
+                cut_off_p1 = int(line.strip('\n\r'))
+                if p1_alg_choice == 3:
+                    d = int(line.strip())
+                line_counter += 1
+                continue
+            if line_counter == 4:   # P2 already assigned along with p2
+                line_counter += 1
+                continue
+            if line_counter == 5:   # P2 algorithm choice
+                p2_alg_choice = int(line.strip('\n\r'))
+                if p2_alg_choice == 3:
+                    algorithm = int(line.strip())
+                line_counter += 1
+                continue
+            if line_counter == 6:    # P1 cutoff
+                cut_off_p2 = int(line.strip('\n\r'))
+                if p2_alg_choice == 3:
+                    d = int(line.strip())
+                line_counter += 1
+                continue
+            if line_counter >= 7 and line_counter < 12:  # Read Board Values
+                board_line = map(int, line.strip('\n\r').split())
+                board_value.append(board_line)
+                pointsMatrix[line_counter - 7] = line.split()
+                # i= chr(ord(i) + 1)
+                line_counter += 1
+                continue
+            if line_counter >= 12:  # Read initial board state
+                curr_line = list(line.strip('\n\r'))
+                init_board.append(curr_line)
+                inputState.append(curr_line)
+                # j = chr(ord(j) + 1)
+                line_counter += 1
+                continue
         else:
-            curr_line = list(line.strip('\n\r'))
-            init_board.append(curr_line)
-            inputState.append(line)
-            # j = chr(ord(j) + 1)
-            line_counter += 1
-
+            if line_counter == 1:
+                sym_choice = line.strip('\n\r')
+                play = sym_choice
+                if sym_choice == 'X':
+                    opp_choice = 'O'
+                    opponent = "O"
+                else:
+                    opp_choice = 'X'
+                    opponent = "X"
+                line_counter += 1
+            elif line_counter == 2:
+                cut_off_p1 = int(line.strip('\n\r'))
+                d = int(line.strip())
+                line_counter += 1
+            elif line_counter > 2 and line_counter < 8:
+                board_line = map(int, line.strip('\n\r').split())
+                board_value.append(board_line)
+                pointsMatrix[line_counter - 3] = line.split()
+                # i= chr(ord(i) + 1)
+                line_counter += 1
+            else:
+                curr_line = list(line.strip('\n\r'))
+                init_board.append(curr_line)
+                inputState.append(line)
+                # j = chr(ord(j) + 1)
+                line_counter += 1
 
 # oop version not needed
 def write_next_state(a_next_state):
     print a_next_state
     f = open("next_state.txt", "w")
+
     s = ""
     for i in range(5):
         s = "".join(map(str, a_next_state[i]))
@@ -885,7 +969,10 @@ def write_next_state(a_next_state):
             s += "\n"
         # s += '\n'
         f.write(s)
+        trace_state.write(s)
+    trace_state.write('\n')
     f.close()
+
 
     # f = open("next_state.txt", "r")
     # lines = f.readlines()
@@ -898,13 +985,18 @@ def write_next_state(a_next_state):
 def write_next_state_ab(a_next_state):
     print a_next_state
     f = open("next_state.txt", "w")
+    nb = []
     s = ""
     for i in range(5):
         s = "".join(map(str, a_next_state[i]))
         # if i < 4:
         #     s += "\n"
+        nb.append(s)
         f.write(s)
+        trace_state.write(s)
+    trace_state.write('\n')
     f.close()
+    return nb
 
 
 def assign_node_name(move, i, j):
@@ -924,9 +1016,15 @@ def main():
     global inputState
     global play
     global d
+    global game_flag
+    global cut_off_p1
+    global cut_off_p2
+    global p1_alg_choice
+    global p2_alg_choice
+    global init_board
+    global board_value
 
-
-    # process_input("input5.txt")
+    # process_input("input6.txt")
     # print "Algo choice", alg_choice
     # print "Symbol Choice", sym_choice
     # print "Cutoff", cut_off_p1
@@ -940,62 +1038,141 @@ def main():
     # print "sym_choice in main is", sym_choice
 
     # for alternating players reverse sym and opp in parameters
-    input_board = Board(init_board, sym_choice, opp_choice, 'i', 0, 0, 0, 0, 0)
-    #   0, 0, 0, 0, 0)
-    if alg_choice == 1:
-        next_board = input_board.brd_greedy_best_first_search()
-        write_next_state(next_board.brd_state)
-        # print '\n\n\nMAIN NEXT BOARD'
-        # print next_board.alpha
-        # print next_board.beta
-        # res = next_board.brd_to_string()
-        # test_file = open('Test.txt','w')
-        # test_file.write(res)
-        # test_file.write(res)
-        # test_file.write(res)
-        # test_file.write(res)
-    if alg_choice == 2:
-        # print cut_off_p1
-        # traverse_log = open('traverse_log.txt', 'w')
-        traverse_log.write('Node,Depth,Value\n')
-        next_board = input_board.brd_min_max(0, cut_off_p1, input_board.brd_p1)
-        write_next_state(next_board.brd_state)
-        traverse_log.close()
+    if not game_flag:
+        input_board = Board(init_board, sym_choice, opp_choice, 'i', 0, 0, 0, 0, 0)
+        #   0, 0, 0, 0, 0)
+        if alg_choice == 1:
 
-        read_traverse_log = open('traverse_log.txt', 'r')
-        lines = read_traverse_log.readlines()
-        read_traverse_log.close()
+            if common_end_game(input_board.brd_state):
+                print "Game has ended"
+                return
+            else:
+                next_board = input_board.brd_greedy_best_first_search()
+                write_next_state(next_board.brd_state)
+                # print '\n\n\nMAIN NEXT BOARD'
+                # print next_board.alpha
+                # print next_board.beta
+                # res = next_board.brd_to_string()
+                # test_file = open('Test.txt','w')
+                # test_file.write(res)
+                # test_file.write(res)
+                # test_file.write(res)
+                # test_file.write(res)
+        if alg_choice == 2:
+            if common_end_game(input_board.brd_state):
+                print "Game has ended"
+                return
+            else:
+                # print cut_off_p1
+                # traverse_log = open('traverse_log.txt', 'w')
+                traverse_log.write('Node,Depth,Value\n')
+                next_board = input_board.brd_min_max(0, cut_off_p1, input_board.brd_p1)
+                write_next_state(next_board.brd_state)
+                traverse_log.close()
 
-        write = open('traverse_log.txt', 'w')
-        # write = open('traverse_log.txt', 'w')
+                read_traverse_log = open('traverse_log.txt', 'r')
+                lines = read_traverse_log.readlines()
+                read_traverse_log.close()
+
+                write = open('traverse_log.txt', 'w')
+                # write = open('traverse_log.txt', 'w')
+                write.writelines([item for item in lines[:-1]])
+                item = lines[-1].rstrip()
+                write.write(item)
+                write.close()
+
+        if alg_choice == 3:
+            if common_end_game(inputState):
+                print "Game has ended"
+                return
+            else:
+                ab_input_board = AB_Game_State(inputState, play, 0, "root")
+                # print pointsMatrix
+                # traverse_log = open('traverse_log.txt', 'w')
+                traverse_log.write('Node,Depth,Value,Alpha,Beta\n')
+                traverse_log.write("root," + str(0) + ",-Infinity" + "," + formatOutput(ab_input_board.alpha) + "," + formatOutput(ab_input_board.beta) + '\n')
+                answer, value = final_alpha_beta(ab_input_board, d)
+                # print answer
+                traverse_log.close()
+                final = get_next_board(answer, ab_input_board)
+                nb = write_next_state_ab(final)
+
+                read_traverse_log = open('traverse_log.txt', 'r')
+                lines = read_traverse_log.readlines()
+                read_traverse_log.close()
+
+                write = open('traverse_log.txt', 'w')
+                write.writelines([item for item in lines[:-1]])
+                item = lines[-1].rstrip()
+                write.write(item)
+                write.close()
+
+            # print final
+    else:   # game simulation here
+        board_state = copy.deepcopy(init_board)
+        player_1_flag = True
+        while not common_end_game(board_state):
+            if player_1_flag:
+                if p1_alg_choice < 3:   # use board
+                    input_board_p1 = Board(board_state, sym_choice, opp_choice, 'i', 0, 0, 0, 0, 0)
+                    board_state = copy.deepcopy(input_board_p1.brd_state)
+
+                else:   # use ab board
+                    input_board_p1 = AB_Game_State(board_state, play, 0, "root")
+                    board_state = copy.deepcopy(input_board_p1.inputState)
+
+                if p1_alg_choice == 1:
+                    next_board = input_board_p1.brd_greedy_best_first_search()
+                    write_next_state(next_board.brd_state)
+                    board_state = copy.deepcopy(next_board.brd_state)
+
+                elif p1_alg_choice == 2:
+                    next_board = input_board_p1.brd_min_max(0, cut_off_p1, input_board_p1.brd_p1)
+                    write_next_state(next_board.brd_state)
+                    board_state = copy.deepcopy(next_board.brd_state)
+
+                elif p1_alg_choice == 3:
+                    answer, value = final_alpha_beta(input_board_p1, d)
+                    final = get_next_board(answer, input_board_p1)
+                    nb = write_next_state_ab(final)
+                    board_state = copy.deepcopy(nb)
+                player_1_flag = False
+            else:   # Player 2
+                if p2_alg_choice < 3:   # use board
+                    input_board_p2 = Board(board_state, opp_choice, sym_choice, 'i', 0, 0, 0, 0, 0)
+                    board_state = copy.deepcopy(input_board_p2.brd_state)
+
+                else:   # use ab board
+                    input_board_p2 = AB_Game_State(board_state, opp_choice, 0, "root")
+                    board_state = copy.deepcopy(input_board_p2.inputState)
+
+                if p2_alg_choice == 1:
+                    next_board = input_board_p2.brd_greedy_best_first_search()
+                    write_next_state(next_board.brd_state)
+                    board_state = copy.deepcopy(next_board.brd_state)
+
+                elif p2_alg_choice == 2:
+                    next_board = input_board_p2.brd_min_max(0, cut_off_p2, input_board_p2.brd_p1)
+                    write_next_state(next_board.brd_state)
+                    board_state = copy.deepcopy(next_board.brd_state)
+
+                elif p2_alg_choice == 3:
+                    answer, value = final_alpha_beta(input_board_p2, d)
+                    final = get_next_board(answer, input_board_p2)
+                    nb = write_next_state_ab(final)
+                    board_state = copy.deepcopy(nb)
+                player_1_flag = True
+        trace_state.close()
+
+        read_trace_state = open('trace_state.txt', 'r')
+        lines = read_trace_state.readlines()
+        read_trace_state.close()
+
+        write = open('trace_state.txt', 'w')
         write.writelines([item for item in lines[:-1]])
-        item = lines[-1].rstrip()
+        item = lines[-1].rstrip('\n\r')
         write.write(item)
         write.close()
-
-    if alg_choice == 3:
-        gs = AB_Game_State(inputState, play, 0, "root")
-        # print pointsMatrix
-        # traverse_log = open('traverse_log.txt', 'w')
-        traverse_log.write('Node,Depth,Value,Alpha,Beta\n')
-        traverse_log.write("root," + str(0) + ",-Infinity" + "," + formatOutput(gs.alpha) + "," + formatOutput(gs.beta) + '\n')
-        answer, value = final_alpha_beta(gs, d)
-        # print answer
-        traverse_log.close()
-
-        read_traverse_log = open('traverse_log.txt', 'r')
-        lines = read_traverse_log.readlines()
-        read_traverse_log.close()
-
-        write = open('traverse_log.txt', 'w')
-        write.writelines([item for item in lines[:-1]])
-        item = lines[-1].rstrip()
-        write.write(item)
-        write.close()
-        final = get_next_board(answer, gs)
-        write_next_state_ab(final)
-        # print final
-
 
 if __name__ == '__main__':
     main()
