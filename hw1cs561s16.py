@@ -1203,10 +1203,22 @@ def main():
         read_trace_state.close()
 
         write = open('trace_state.txt', 'w')
+        for item in lines:
+            if item == '\n' or item =='\r\n' or item == '\n\r':
+                continue
+            write.write(item)
+        write.close()
+
+        read_trace_state = open('trace_state.txt', 'r')
+        lines = read_trace_state.readlines()
+        read_trace_state.close()
+
+        write = open('trace_state.txt', 'w')
         write.writelines([item for item in lines[:-1]])
         item = lines[-1].rstrip('\n\r')
         write.write(item)
         write.close()
+
 
 if __name__ == '__main__':
     main()
