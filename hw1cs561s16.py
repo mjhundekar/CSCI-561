@@ -1118,8 +1118,19 @@ def main():
                     board_state = copy.deepcopy(input_board_p1.brd_state)
 
                 else:   # use ab board
-                    input_board_p1 = AB_Game_State(board_state, play, 0, "root")
-                    board_state = copy.deepcopy(input_board_p1.inputState)
+                    ab_board_state = []
+                    for i in range(5):
+                        s = "".join(map(str, board_state[i]))
+                        if i < 4:
+                            s += '\n'
+                        ab_board_state.append(s)
+                    input_board_p1 = AB_Game_State(ab_board_state, play, 0, "root")
+                    # board_state = copy.deepcopy(input_board_p1.inputState)
+                    board_state = []
+                    for i in range(5):
+                        s = ''
+                        s = str(input_board_p1.inputState[i])
+                        board_state.append(list(s))
 
                 if p1_alg_choice == 1:
                     next_board = input_board_p1.brd_greedy_best_first_search()
@@ -1135,7 +1146,12 @@ def main():
                     answer, value = final_alpha_beta(input_board_p1, d)
                     final = get_next_board(answer, input_board_p1)
                     nb = write_next_state_ab(final)
-                    board_state = copy.deepcopy(nb)
+                    board_state = []
+                    for i in range(5):
+                        s = ''
+                        s = str(nb[i])
+                        board_state.append(list(s))
+                    # board_state = copy.deepcopy(nb)
                 player_1_flag = False
             else:   # Player 2
                 if p2_alg_choice < 3:   # use board
@@ -1143,8 +1159,20 @@ def main():
                     board_state = copy.deepcopy(input_board_p2.brd_state)
 
                 else:   # use ab board
-                    input_board_p2 = AB_Game_State(board_state, opp_choice, 0, "root")
-                    board_state = copy.deepcopy(input_board_p2.inputState)
+                    ab_board_state = []
+                    for i in range(5):
+                        s = "".join(map(str, board_state[i]))
+                        if i < 4:
+                            s += '\n'
+                        ab_board_state.append(s)
+
+                    input_board_p2 = AB_Game_State(ab_board_state, opp_choice, 0, "root")
+                    board_state = []
+                    for i in range(5):
+                        s = ''
+                        s = str(input_board_p2.inputState[i])
+                        board_state.append(list(s))
+                    # board_state = copy.deepcopy(input_board_p2.inputState)
 
                 if p2_alg_choice == 1:
                     next_board = input_board_p2.brd_greedy_best_first_search()
@@ -1160,7 +1188,13 @@ def main():
                     answer, value = final_alpha_beta(input_board_p2, d)
                     final = get_next_board(answer, input_board_p2)
                     nb = write_next_state_ab(final)
-                    board_state = copy.deepcopy(nb)
+                    board_state = []
+                    for i in range(5):
+                        s = ''
+                        s = str(nb[i])
+                        board_state.append(list(s))
+                        # board_state = copy.deepcopy(nb)
+                    # board_state = copy.deepcopy(nb)
                 player_1_flag = True
         trace_state.close()
 
