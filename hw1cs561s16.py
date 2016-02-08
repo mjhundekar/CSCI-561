@@ -182,9 +182,9 @@ class Board:
 
     def brd_greedy_best_first_search(self):
         all_moves = []
-        if  common_end_game(self.brd_state):
+        if common_end_game(self.brd_state):
             print "Game has ended"
-            return
+            return self
         else:
             for i in range(5):
                 for j in range(5):
@@ -227,144 +227,144 @@ class Board:
         # check if game has ended or if we have reached the cut off depth
         # if common_end_game(self.brd_state):
         #     print "Game has ended"
-        #     return
+        #     return self
         # else:
-        if depth == cut_off:
-            logfile.write('\nInside cut off MAX_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
-            logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
-            self.val_min_max = self.brd_curr_p1_eval
+                if depth == cut_off:
+                    logfile.write('\nInside cut off MAX_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+                    logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+                    self.val_min_max = self.brd_curr_p1_eval
 
-            return self
-        else:
-            depth += 1
-            temp_max = decimal.Decimal('-Infinity')
-            all_moves = []
+                    return self
+                else:
+                    depth += 1
+                    temp_max = decimal.Decimal('-Infinity')
+                    all_moves = []
 
-            # generate all moves for self
-            logfile.write('\nGenerating all moves MAX_MOVE: ' + str(self.brd_p1) + '\n Depth : ' + str(
-                depth) + '\n' + self.brd_to_string())
-            logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+                    # generate all moves for self
+                    logfile.write('\nGenerating all moves MAX_MOVE: ' + str(self.brd_p1) + '\n Depth : ' + str(
+                        depth) + '\n' + self.brd_to_string())
+                    logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
 
-            for i in range(5):
-                for j in range(5):
-                    if self.brd_state[i][j] == '*':
-                        # next move either be sneak or raid
-                        if self.brd_check_sneak(i, j):
-                            sneak_node = self.brd_sneak(i, j, self.brd_depth + 1)
-                            next_move = sneak_node
-                            t = depth
+                    for i in range(5):
+                        for j in range(5):
+                            if self.brd_state[i][j] == '*':
+                                # next move either be sneak or raid
+                                if self.brd_check_sneak(i, j):
+                                    sneak_node = self.brd_sneak(i, j, self.brd_depth + 1)
+                                    next_move = sneak_node
+                                    t = depth
 
-                            logfile.write(
-                                '\n\nNext SNEAK MAX_MOVE \n Depth : ' + str(t) + ' i, j: ' + str(i) + ' ' + str(
-                                    j) + '\n' + sneak_node.brd_to_string())
-                            logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
-                            logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) + ' ' + str(
-                                sneak_node.brd_curr_p2_eval))
+                                    logfile.write(
+                                        '\n\nNext SNEAK MAX_MOVE \n Depth : ' + str(t) + ' i, j: ' + str(i) + ' ' + str(
+                                            j) + '\n' + sneak_node.brd_to_string())
+                                    logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
+                                    logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) + ' ' + str(
+                                        sneak_node.brd_curr_p2_eval))
 
-                        else:  # sneak not possible then its raid
-                            raid_node = self.brd_raid(i, j, depth)
-                            next_move = raid_node
-                            t = depth
+                                else:  # sneak not possible then its raid
+                                    raid_node = self.brd_raid(i, j, depth)
+                                    next_move = raid_node
+                                    t = depth
 
-                            logfile.write(
-                                '\n\nNext RAID MAX_MOVE \n Depth :  ' + str(t) + ' i, j: ' + str(i) + ' ' + str(
-                                    j) + '\n' + raid_node.brd_to_string())
-                            logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
-                            logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) + ' ' + str(
-                                raid_node.brd_curr_p2_eval))
-                        if depth % 2 == 1 and not depth == cut_off:
-                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
-                                next_move.val_min_max) + '\n')
-                        # Call the min move on next move
-                        next_min_move = next_move.min_move(depth, cut_off, player)
-                        if depth == cut_off:
-                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
-                                next_move.val_min_max) + '\n')
+                                    logfile.write(
+                                        '\n\nNext RAID MAX_MOVE \n Depth :  ' + str(t) + ' i, j: ' + str(i) + ' ' + str(
+                                            j) + '\n' + raid_node.brd_to_string())
+                                    logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
+                                    logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) + ' ' + str(
+                                        raid_node.brd_curr_p2_eval))
+                                if depth % 2 == 1 and not depth == cut_off:
+                                    traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
+                                        next_move.val_min_max) + '\n')
+                                # Call the min move on next move
+                                next_min_move = next_move.min_move(depth, cut_off, player)
+                                if depth == cut_off:
+                                    traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
+                                        next_move.val_min_max) + '\n')
 
-                        if next_min_move.val_min_max > temp_max:
-                            temp_max = next_min_move.val_min_max
-                            next_move.val_min_max = temp_max
-                            self.val_min_max = temp_max
+                                if next_min_move.val_min_max > temp_max:
+                                    temp_max = next_min_move.val_min_max
+                                    next_move.val_min_max = temp_max
+                                    self.val_min_max = temp_max
 
-                        if depth > 1:
-                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
-                                next_move.val_min_max) + '\n')
+                                if depth > 1:
+                                    traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
+                                        next_move.val_min_max) + '\n')
 
-                        traverse_log.write(
-                            self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
-                        all_moves.append(next_move)
+                                traverse_log.write(
+                                    self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
+                                all_moves.append(next_move)
 
-            all_moves = sorted(all_moves, key=get_val_min_max, reverse=True)
-            best_move = all_moves[0]
+                    all_moves = sorted(all_moves, key=get_val_min_max, reverse=True)
+                    best_move = all_moves[0]
 
-        logfile.write('\n\nBEST MAX_MOVE at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
-        logfile.write(
-            '\nCheck Here Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(
-                best_move.brd_curr_p2_eval))
+                logfile.write('\n\nBEST MAX_MOVE at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
+                logfile.write(
+                    '\nCheck Here Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(
+                        best_move.brd_curr_p2_eval))
 
-        return best_move
+                return best_move
 
     def min_move(self, depth, cut_off, player):
-        # if  common_end_game(self.brd_state):
+        # if common_end_game(self.brd_state):
         #     print "Game has ended"
-        #     return
+        #     return self
         # else:
-        if depth == cut_off:
-            logfile.write('\nInside cut off MIN_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
-            logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
-            self.val_min_max = -self.brd_curr_p1_eval  # Important Fix
-            return self
-        else:
-            # generate all moves
-            depth += 1
-            temp_min = decimal.Decimal('Infinity')
-            all_moves = []
+            if depth == cut_off:
+                logfile.write('\nInside cut off MIN_MOVE\n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+                logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+                self.val_min_max = -self.brd_curr_p1_eval  # Important Fix
+                return self
+            else:
+                # generate all moves
+                depth += 1
+                temp_min = decimal.Decimal('Infinity')
+                all_moves = []
 
-            logfile.write('\nGenerating all moves MIN_MOVE \n Depth : ' + str(depth) + '\n' + self.brd_to_string())
-            logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
+                logfile.write('\nGenerating all moves MIN_MOVE \n Depth : ' + str(depth) + '\n' + self.brd_to_string())
+                logfile.write('\n Evaluation P1 : P2 : ' + str(self.brd_curr_p1_eval) + ' ' + str(self.brd_curr_p2_eval))
 
-            for i in range(5):
-                for j in range(5):
-                    if self.brd_state[i][j] == '*':
-                        if self.brd_check_sneak(i, j):
-                            sneak_node = self.brd_sneak(i, j, depth)
-                            next_move = sneak_node
-                            t = depth
+                for i in range(5):
+                    for j in range(5):
+                        if self.brd_state[i][j] == '*':
+                            if self.brd_check_sneak(i, j):
+                                sneak_node = self.brd_sneak(i, j, depth)
+                                next_move = sneak_node
+                                t = depth
 
-                            (logfile.write('\n\nNext SNEAK MIN_MOVE \n Depth : ' + str(t) + ' i, j: ' +
-                                           str(i) + ' ' + str(j) + '\n' + sneak_node.brd_to_string()))
-                            logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
-                            (logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) +
-                                           ' ' + str(sneak_node.brd_curr_p2_eval)))
-                        else:  # sneak not possible then its raid
-                            raid_node = self.brd_raid(i, j, depth)
-                            next_move = raid_node
-                            t = depth
-                            (logfile.write('\n\nNext RAID MIN_MOVE \n Depth :  ' + str(t) + ' i, j: ' +
-                                           str(i) + ' ' + str(j) + '\n' + raid_node.brd_to_string()))
-                            logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
-                            (logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) +
-                                           ' ' + str(raid_node.brd_curr_p2_eval)))
+                                (logfile.write('\n\nNext SNEAK MIN_MOVE \n Depth : ' + str(t) + ' i, j: ' +
+                                               str(i) + ' ' + str(j) + '\n' + sneak_node.brd_to_string()))
+                                logfile.write('P1 : P2 : ' + sneak_node.brd_p1 + ' ' + sneak_node.brd_p2)
+                                (logfile.write('\n Evaluation P1 : P2 : ' + str(sneak_node.brd_curr_p1_eval) +
+                                               ' ' + str(sneak_node.brd_curr_p2_eval)))
+                            else:  # sneak not possible then its raid
+                                raid_node = self.brd_raid(i, j, depth)
+                                next_move = raid_node
+                                t = depth
+                                (logfile.write('\n\nNext RAID MIN_MOVE \n Depth :  ' + str(t) + ' i, j: ' +
+                                               str(i) + ' ' + str(j) + '\n' + raid_node.brd_to_string()))
+                                logfile.write('P1 : P2 : ' + raid_node.brd_p1 + ' ' + raid_node.brd_p2)
+                                (logfile.write('\n Evaluation P1 : P2 : ' + str(raid_node.brd_curr_p1_eval) +
+                                               ' ' + str(raid_node.brd_curr_p2_eval)))
 
-                        next_max_move = next_move.max_move(depth, cut_off, player)
-                        if next_max_move.val_min_max < temp_min:
-                            temp_min = next_max_move.val_min_max
-                            next_move.val_min_max = temp_min
-                            self.val_min_max = temp_min
-                        if depth > 1:
-                            traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
-                                next_move.val_min_max) + '\n')
-                        traverse_log.write(
-                            self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
-                        all_moves.append(next_move)
+                            next_max_move = next_move.max_move(depth, cut_off, player)
+                            if next_max_move.val_min_max < temp_min:
+                                temp_min = next_max_move.val_min_max
+                                next_move.val_min_max = temp_min
+                                self.val_min_max = temp_min
+                            if depth > 1:
+                                traverse_log.write(next_move.brd_name + ',' + str(next_move.brd_depth) + ',' + str(
+                                    next_move.val_min_max) + '\n')
+                            traverse_log.write(
+                                self.brd_name + ',' + str(self.brd_depth) + ',' + str(self.val_min_max) + '\n')
+                            all_moves.append(next_move)
 
-            all_moves = sorted(all_moves, key=get_val_min_max, reverse=False)
-            best_move = all_moves[0]
+                all_moves = sorted(all_moves, key=get_val_min_max, reverse=False)
+                best_move = all_moves[0]
 
-        logfile.write('\n\nBEST MIN_MOVE at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
-        logfile.write(
-            '\n Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(best_move.brd_curr_p2_eval))
-        return best_move
+            logfile.write('\n\nBEST MIN_MOVE at depth : ' + str(depth) + '\n' + best_move.brd_to_string())
+            logfile.write(
+                '\n Evaluation P1 : P2 : ' + str(best_move.brd_curr_p1_eval) + ' ' + str(best_move.brd_curr_p2_eval))
+            return best_move
 
     #######################################################################################################
 
@@ -815,7 +815,6 @@ def final_alpha_beta(curr_game_state, cut_off):
             max(curr_game_state.scores, key=curr_game_state.scores.get)]
 
 
-
 def get_v(a_board):
     return a_board.v
 
@@ -989,12 +988,17 @@ def write_next_state_ab(a_next_state):
     s = ""
     for i in range(5):
         s = "".join(map(str, a_next_state[i]))
-        # if i < 4:
-        #     s += "\n"
-        nb.append(s)
-        f.write(s)
-        trace_state.write(s)
-    trace_state.write('\n')
+        s = s.rstrip('\n\r')
+        if i < 4:
+            # s += "\n"
+            nb.append(s + '\n')
+            f.write(s + '\n')
+        else:
+            nb.append(s)
+            f.write(s)
+
+        trace_state.write(s + '\n')
+    # trace_state.write('\n')
     f.close()
     return nb
 
@@ -1131,19 +1135,23 @@ def main():
                         s = ''
                         s = str(input_board_p1.inputState[i])
                         board_state.append(list(s))
-
+                max_depth = 0
+                for i in range(5):
+                    for j in range(5):
+                        if board_state[i][j] == '*':
+                            max_depth += 1
                 if p1_alg_choice == 1:
                     next_board = input_board_p1.brd_greedy_best_first_search()
                     write_next_state(next_board.brd_state)
                     board_state = copy.deepcopy(next_board.brd_state)
 
                 elif p1_alg_choice == 2:
-                    next_board = input_board_p1.brd_min_max(0, cut_off_p1, input_board_p1.brd_p1)
+                    next_board = input_board_p1.brd_min_max(0, min(cut_off_p1, max_depth), input_board_p1.brd_p1)
                     write_next_state(next_board.brd_state)
                     board_state = copy.deepcopy(next_board.brd_state)
 
                 elif p1_alg_choice == 3:
-                    answer, value = final_alpha_beta(input_board_p1, d)
+                    answer, value = final_alpha_beta(input_board_p1, min(d, max_depth))
                     final = get_next_board(answer, input_board_p1)
                     nb = write_next_state_ab(final)
                     board_state = []
@@ -1173,19 +1181,23 @@ def main():
                         s = str(input_board_p2.inputState[i])
                         board_state.append(list(s))
                     # board_state = copy.deepcopy(input_board_p2.inputState)
-
+                max_depth = 0
+                for i in range(5):
+                    for j in range(5):
+                        if board_state[i][j] == '*':
+                            max_depth += 1
                 if p2_alg_choice == 1:
                     next_board = input_board_p2.brd_greedy_best_first_search()
                     write_next_state(next_board.brd_state)
                     board_state = copy.deepcopy(next_board.brd_state)
 
                 elif p2_alg_choice == 2:
-                    next_board = input_board_p2.brd_min_max(0, cut_off_p2, input_board_p2.brd_p1)
+                    next_board = input_board_p2.brd_min_max(0, min(cut_off_p2, max_depth), input_board_p2.brd_p1)
                     write_next_state(next_board.brd_state)
                     board_state = copy.deepcopy(next_board.brd_state)
 
                 elif p2_alg_choice == 3:
-                    answer, value = final_alpha_beta(input_board_p2, d)
+                    answer, value = final_alpha_beta(input_board_p2, min(d, max_depth))
                     final = get_next_board(answer, input_board_p2)
                     nb = write_next_state_ab(final)
                     board_state = []
