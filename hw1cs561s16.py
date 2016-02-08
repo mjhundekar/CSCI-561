@@ -1117,6 +1117,7 @@ def main():
         player_1_flag = True
         while not common_end_game(board_state):
             if player_1_flag:
+
                 if p1_alg_choice < 3:   # use board
                     input_board_p1 = Board(board_state, sym_choice, opp_choice, 'i', 0, 0, 0, 0, 0)
                     board_state = copy.deepcopy(input_board_p1.brd_state)
@@ -1135,6 +1136,7 @@ def main():
                         s = ''
                         s = str(input_board_p1.inputState[i])
                         board_state.append(list(s))
+
                 max_depth = 0
                 for i in range(5):
                     for j in range(5):
@@ -1151,7 +1153,7 @@ def main():
                     board_state = copy.deepcopy(next_board.brd_state)
 
                 elif p1_alg_choice == 3:
-                    answer, value = final_alpha_beta(input_board_p1, min(d, max_depth))
+                    answer, value = final_alpha_beta(input_board_p1, min(cut_off_p1, max_depth))
                     final = get_next_board(answer, input_board_p1)
                     nb = write_next_state_ab(final)
                     board_state = []
@@ -1197,7 +1199,7 @@ def main():
                     board_state = copy.deepcopy(next_board.brd_state)
 
                 elif p2_alg_choice == 3:
-                    answer, value = final_alpha_beta(input_board_p2, min(d, max_depth))
+                    answer, value = final_alpha_beta(input_board_p2, min(cut_off_p2, max_depth))
                     final = get_next_board(answer, input_board_p2)
                     nb = write_next_state_ab(final)
                     board_state = []
